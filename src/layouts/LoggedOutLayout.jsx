@@ -1,17 +1,17 @@
-import { Outlet } from "react-router";
+import { Outlet, Link } from "react-router";
 import "./Layout.css";
-import NavBar from "./components/NavBar";
 
 function LoggedInLayout() {
   return (
     <div class="flex">
-      <nav>
-        <NavBar />
-      </nav>
       <main>
         <h2>Main Content</h2>
         <Outlet />
+        <Link to="/dashboard">Go to dashboard</Link>
       </main>
+      <div>
+        <p>Insert image of Gabay or tagline.</p>
+      </div>
     </div>
   );
 }
