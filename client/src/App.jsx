@@ -8,7 +8,7 @@ function App() {
       <nav>
         <ul>
         {
-          ["login", "sign-up", "dashboard", "activity-log", "add-item"].map((element, i) =>
+          ["login", "sign-up", "dashboard", "inventory", "activity-log", "add-item"].map((element, i) =>
               <li key={i}>
                 <Link to={element}>{element}</Link>
               </li>

@@ -1,4 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Work+Sans:wght@400;600;700&display=swap');
 @import "tailwindcss";
+@theme {
+  --color-primary: #a51f35;
+  --color-secondary: #ffc724;
+  --font-Poppins: "Poppins", sans-serif;
+  --font-Work-Sans: "Work Sans", sans-serif;
+}
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
