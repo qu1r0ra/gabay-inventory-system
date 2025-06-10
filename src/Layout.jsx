@@ -1,10 +1,10 @@
 import { Outlet } from "react-router";
 import "./Layout.css";
-import NavBar from "../components/NavBar";
+import NavBar from "./components/SideNavBar";
 
-function LoggedInLayout() {
+function Layout() {
   return (
-    <div class="flex">
+    <div className="flex">
       <nav>
         <NavBar />
       </nav>
@@ -16,4 +16,4 @@ function LoggedInLayout() {
   );
 }
 
-export default LoggedInLayout;
+export default Layout;
