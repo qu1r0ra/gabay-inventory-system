@@ -1,11 +1,14 @@
+type ButtonProps = {
+  size?: "xs" | "sm" | "md" | "lg",
+} & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 function Button({
-  children, // needed to render text/content inside the button
-  onClick,
   type = 'button',
   size = 'md', 
+  onClick,
+  children, // needed to render text/content inside the button
   className, // allows adding extra Tailwind classes from parent component
-}) {
+}: ButtonProps) {
 
   const baseStyles = 'bg-primary rounded-4xl font-Poppins font-bold text-white ' +
                    'hover:bg-secondary active:bg-accent ' + 

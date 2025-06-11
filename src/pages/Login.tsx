@@ -3,12 +3,12 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import React, { useState } from 'react';
 
-function Login({ onLoginSuccess }) {
+function Login({ onLoginSuccess }: { onLoginSuccess: Function }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = (e) => {
-      e.preventDefault();
+    const handleLogin: React.FormEventHandler<HTMLFormElement> = (event) => {
+      event.preventDefault();
 
       console.log('Attempting login with:', username, password);
 

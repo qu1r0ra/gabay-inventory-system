@@ -1,16 +1,19 @@
-// Input.jsx
+type InputProps = {
+  label?: string,
+  inputClassName?: string,
+} & React.InputHTMLAttributes<HTMLInputElement>;
 
 function Input({
-  label,
   id,
   name,
   type = "text",
-  placeholder,
   value,
+  label,
   onChange,
   className,      
+  placeholder,
   inputClassName, 
-}) {
+}: InputProps) {
   return (
     <div className={`mb-4 ${className || ''}`}>
       <label htmlFor={id} className="block text-black-700 text-xs font-bold mb-2 font-Work-Sans">
