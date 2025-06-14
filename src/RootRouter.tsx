@@ -8,24 +8,20 @@ function RootRouter() {
   const [session, setSession] = useState(false);
 
   const handleLoginSuccess = () => {
-    setSession(true); 
+    setSession(true);
   };
 
-  return (
-    <div>
-      {session ? (
-        <div className="flex">
-          <Sidebar />
-          <div className="flex-1 flex flex-col ml-[350px]"> 
-            <Header />
-            <Outlet />
-          </div>
-        </div>
-      ) : (
-        <>
-          <Login onLoginSuccess={handleLoginSuccess} />
-        </>
-      )}
+  if (!session) return <Login onLoginSuccess={handleLoginSuccess} />;
+
+    return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-col flex-1">
+        <Header />
+        <main className="flex-1 overflow-y-auto bg-gray-100 p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

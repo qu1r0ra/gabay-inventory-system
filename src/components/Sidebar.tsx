@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { Heading } from './Heading';
 
 import logo from '../assets/Logo.png';
 
@@ -11,14 +12,9 @@ function Sidebar() {
     ];
 
     return (
-        <div className="w-[350px] h-screen fixed top-0 left-0 bg-primary overflow-y-auto overflow-x-hidden flex flex-col"> 
-            <h1 className="text-white font-Poppins text-6xl font-bold mt-4 w-[300px] text-left ml-3">
-                GABAY
-            </h1>
-
-            <p className="w-[100px] text-white font-Work-Sans text-xs text-left mt-12 ml-4 mb-1">
-                Overview
-            </p>
+        <div className="w-0 md:w-[250px] lg:w-[350px] h-screen bg-primary overflow-y-auto overflow-x-hidden flex flex-col transition-all duration-300">
+            <Heading size="3xl" className={"mt-4 text-left ml-3"}>GABAY</Heading>
+            <Heading level={2} size="xs" className={"font-Work-Sans text-left mt-8 ml-4 mb-1 font-normal"}>Overview</Heading>
 
             {sidebarItems.map((item) => (
                 <NavLink
@@ -26,6 +22,7 @@ function Sidebar() {
                     to={item.path}
                     className={({ isActive }) =>
                         `font-Poppins font-bold mt-2.5 mb-2.5 text-left ml-12
+                        text-sm sm:text-md md:text-lg lg:text-xl
                         hover:scale-105 transition-transform duration-200 ease-in-out origin-left
                         ${isActive ? 'text-accent' : 'text-white'}`
                     }
