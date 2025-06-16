@@ -7,6 +7,8 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import ActivityLog from "./pages/ActivityLog";
 import AddItem from "./pages/AddItem";
+import CheckOut from "./pages/CheckOut";
+import GenerateReport from "./pages/GenerateReport";
 
 const router = createBrowserRouter([
   {
@@ -28,6 +30,14 @@ const router = createBrowserRouter([
       {
         path: "/add-item",
         element: <AddItem />,
+      },
+      {
+        path: "/check-out",
+        element: <CheckOut />,
+      },
+      {
+        path: "/generate-report",
+        element: <GenerateReport />,
       },
     ],
   },
