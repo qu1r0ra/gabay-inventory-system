@@ -3,7 +3,7 @@ import {
   SignInWithPasswordCredentials,
   User,
 } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 // Env setup
 const supabase = createClient(
@@ -13,17 +13,25 @@ const supabase = createClient(
 
 interface IAuth {
   user: User | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
 }
 
 /**
- * The useAuth hook gives client components access to auth related functions.
+ * This has to be a global context cuz this is shared across the SPA.
+ * Check out react for more info on context providers
  *
- * @hook
+ * @component
  */
-export const useAuth = (): IAuth => {
+const AuthContext = createContext<IAuth>({} as IAuth);
+export const AuthContextProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Auto checks if user is logged in
   useEffect(() => {
@@ -39,6 +47,8 @@ export const useAuth = (): IAuth => {
       data: { user },
     } = await supabase.auth.getUser();
     setUser(user);
+    console.log("[AUTH]: updated user.");
+    setLoading(false);
   };
 
   /**
@@ -85,9 +95,23 @@ export const useAuth = (): IAuth => {
     return true;
   };
 
-  return {
-    user,
-    login,
-    logout,
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        user: useMemo<User>(() => user as User, [user]),
+        loading,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+/**
+ * The useAuth hook gives client components access to auth related functions.
+ *
+ * @hook
+ */
+export const useAuth = () => useContext(AuthContext);
