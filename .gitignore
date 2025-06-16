@@ -26,3 +26,4 @@ dist-ssr
 # VS Code settings
 .vscode/
 .env
+.vercel

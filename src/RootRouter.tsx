@@ -1,19 +1,14 @@
-import { useState } from "react";
-import { Outlet } from "react-router";
+import { Outlet } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Login from "./pages/Login";
+import { useAuth } from "./lib/db/db.auth";
 
 function RootRouter() {
-  const [session, setSession] = useState(false);
+  const { user } = useAuth();
+  if (!user) return <Login />;
 
-  const handleLoginSuccess = () => {
-    setSession(true);
-  };
-
-  if (!session) return <Login onLoginSuccess={handleLoginSuccess} />;
-
-    return (
+  return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-col flex-1">
