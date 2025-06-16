@@ -16,7 +16,7 @@ function Input({
 }: InputProps) {
   return (
     <div className={`mb-4 ${className || ''}`}>
-      <label htmlFor={id} className="block text-black-700 text-xs font-bold mb-2 font-Work-Sans">
+      <label htmlFor={id} className="block text-white text-xs font-bold mb-2 font-Poppins">
         {label}
       </label>
       <input
