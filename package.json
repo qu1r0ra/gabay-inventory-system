@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "vercel-dev": "vercel dev",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -12,6 +13,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
     "@tailwindcss/vite": "^4.1.8",
+    "@vercel/node": "^5.2.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "i": "^0.3.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -21,6 +25,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

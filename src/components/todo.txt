@@ -1,0 +1,1 @@
+allow global imports through tsconfig
