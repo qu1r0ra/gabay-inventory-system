@@ -9,6 +9,7 @@ import ActivityLog from "./pages/ActivityLog";
 import AddItem from "./pages/AddItem";
 import CheckOut from "./pages/CheckOut";
 import GenerateReport from "./pages/GenerateReport";
+import { AuthContextProvider } from "./lib/db/db.auth";
 
 const router = createBrowserRouter([
   {
@@ -45,6 +46,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router}></RouterProvider>
+    <AuthContextProvider>
+      <RouterProvider router={router}></RouterProvider>
+    </AuthContextProvider>
   </StrictMode>
 );
