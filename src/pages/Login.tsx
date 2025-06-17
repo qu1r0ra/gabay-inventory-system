@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 function Login() {
   const { user, login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
@@ -22,14 +22,14 @@ function Login() {
     event.preventDefault();
 
     // Fields are missing
-    if (email.trim() === "" || password.trim() === "") {
+    if (username.trim() === "" || password.trim() === "") {
       console.log("Login failed: Please enter both username and password.");
       alert("Please enter both username and password to log in.");
       return;
     }
 
     // Validate creds
-    const success = await login(email, password);
+    const success = await login(username, password);
     if (!success) return;
   };
 
@@ -48,8 +48,8 @@ function Login() {
             name="username"
             type="text"
             placeholder="Enter your username"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
 
           <Input
