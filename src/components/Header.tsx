@@ -31,7 +31,9 @@ function Header() {
         </Button>
         <div className="w-[2px] h-8 bg-gray-400" />
         <img src={logo} className="rounded-full w-10 h-10" alt="Profile" />
-        <h2 className="font-Poppins font-bold text-md">{user?.email}</h2>
+        <h2 className="font-Poppins font-bold text-md">
+          {user?.email?.split("@")[0]}
+        </h2>
       </div>
     </div>
   );

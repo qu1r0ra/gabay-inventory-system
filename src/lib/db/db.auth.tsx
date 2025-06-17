@@ -1,8 +1,4 @@
-import {
-  createClient,
-  SignInWithPasswordCredentials,
-  User,
-} from "@supabase/supabase-js";
+import { createClient, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 // Env setup
