@@ -9,6 +9,7 @@ function Sidebar() {
         { path: "/inventory", text: "Inventory" },
         { path: "/activity-log", text: "Activity Log" },
         { path: "/add-item", text: "Add Item" },
+        { path: "/check-out", text: "Confirmation" },
         { path: "/generate-report", text: "Generate Report" },
     ];
 
