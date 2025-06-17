@@ -14,7 +14,8 @@ const supabase = createClient(
 interface IAuth {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
 }
 
@@ -58,7 +59,38 @@ export const AuthContextProvider = ({
    * @param password
    * @returns
    */
-  const login = async (email: string, password: string) => {
+  const register = async (username: string, password: string) => {
+    // Just generate a placeholder email because supabase wants an email
+    const email = `${username}@gabay.org`;
+
+    // Supabase automatically checks password
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    // Something went wrong
+    if (error) {
+      alert(error.message);
+      return false;
+    }
+
+    // Update user
+    await updateUser();
+    return true;
+  };
+
+  /**
+   * Authenticates the user with the supabase backend.
+   *
+   * @param email
+   * @param password
+   * @returns
+   */
+  const login = async (username: string, password: string) => {
+    // Just generate a placeholder email because supabase wants an email
+    const email = `${username}@gabay.org`;
+
     // Supabase automatically checks password
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -100,6 +132,7 @@ export const AuthContextProvider = ({
       value={{
         user: useMemo<User>(() => user as User, [user]),
         loading,
+        register,
         login,
         logout,
       }}
