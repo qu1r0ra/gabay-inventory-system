@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import Table from "../components/Table";
+import InventoryTable from "../components/InventoryTable";
 import Button from "../components/Button";
 import { Link } from "react-router-dom";
 
@@ -70,7 +70,7 @@ function Inventory() {
         </Link>
 
         <div ref={containerRef} className="h-[650px]">
-          <Table columns={columns} data={visibleData} />
+          <InventoryTable columns={columns} data={visibleData} />
         </div>
 
         <div className="flex justify-center items-center gap-12 mt-4">

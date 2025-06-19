@@ -12,7 +12,7 @@ type TableProps = {
   data: Record<string, React.ReactNode>[];
 };
 
-function Table({ columns, data }: TableProps) {
+function InventoryTable({ columns, data }: TableProps) {
   return (
     <div className="w-full max-w-[940px] border-white">
       <table className="table-auto w-full text-center text-sm text-white">
@@ -71,4 +71,4 @@ function Table({ columns, data }: TableProps) {
   );
 }
 
-export default Table;
+export default InventoryTable;
