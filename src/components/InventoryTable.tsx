@@ -12,7 +12,7 @@ type TableProps = {
   data: Record<string, React.ReactNode>[];
 };
 
-function Table({ columns, data }: TableProps) {
+function InventoryTable({ columns, data }: TableProps) {
   return (
     <div className="w-full max-w-[940px] border-white">
       <table className="table-auto w-full text-center text-sm text-white">
@@ -28,7 +28,7 @@ function Table({ columns, data }: TableProps) {
         <thead className="bg-primary">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-4 py-3 font-semibold">
+              <th key={column.key} className="px-4 py-3 font-bold font-Poppins">
                 {column.label}
               </th>
             ))}
@@ -42,7 +42,7 @@ function Table({ columns, data }: TableProps) {
               style={{ height: "50px" }}
             >
               {columns.map((column) => (
-                <td key={column.key} className="px-4 py-2">
+                <td key={column.key} className="px-4 py-2 font-Work-Sans">
                   {column.key === "action" ? (
                     <NumberStepper
                       min={0}
@@ -71,4 +71,4 @@ function Table({ columns, data }: TableProps) {
   );
 }
 
-export default Table;
+export default InventoryTable;

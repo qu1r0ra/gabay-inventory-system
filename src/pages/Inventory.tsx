@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import Table from "../components/Table";
+import InventoryTable from "../components/InventoryTable";
 import Button from "../components/Button";
+import { Link } from "react-router-dom";
 
 const columns = [
   { key: "icon", label: "ICON" },
@@ -61,21 +62,28 @@ function Inventory() {
   const hasPrev = currentPage > 0;
 
   return (
-    <div className="flex justify-center min-h-screen p-4 flex-col items-center">
-      <div ref={containerRef} className="w-full max-w-[940px] h-[650px]">
-        <Table columns={columns} data={visibleData} />
-      </div>
+    <div className="flex justify-center min-h-screen p-4">
+      <div className="w-full max-w-[940px] flex flex-col">
 
-      <div className="flex justify-center items-center gap-12 mt-4">
-        <Button size="sm" disabled={!hasPrev} onClick={() => setCurrentPage((p) => Math.max(p - 1, 0))}>
-          BACK
-        </Button>
-        <span className="text-white text-sm">
-          Page {currentPage + 1} of {totalPages}
-        </span>
-        <Button size="sm" disabled={!hasNext} onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages - 1))}>
-          NEXT
-        </Button>
+        <Link to="/add-item">
+          <Button size="xs" className="mb-4 self-start">ADD ITEM</Button>
+        </Link>
+
+        <div ref={containerRef} className="h-[650px]">
+          <InventoryTable columns={columns} data={visibleData} />
+        </div>
+
+        <div className="flex justify-center items-center gap-12 mt-4">
+          <Button size="sm" disabled={!hasPrev} onClick={() => setCurrentPage((p) => Math.max(p - 1, 0))}>
+            BACK
+          </Button>
+          <span className="text-white text-sm">
+            Page {currentPage + 1} of {totalPages}
+          </span>
+          <Button size="sm" disabled={!hasNext} onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages - 1))}>
+            NEXT
+          </Button>
+        </div>
       </div>
     </div>
   );
