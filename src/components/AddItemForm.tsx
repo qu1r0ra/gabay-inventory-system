@@ -2,62 +2,58 @@ import { useState } from "react";
 import Input from "./Input";
 import Button from "./Button";
 import { Heading } from "./Heading";
+import CreatableSelect from "react-select/creatable";
 
 function AddItemForm() {
   const [form, setForm] = useState({
     item: "",
-    name: "",
     quantity: "",
     lotId: "",
     expDate: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleItemChange = (newValue: any) => {
+    setForm((prev) => ({ ...prev, item: newValue?.value || "" }));
+  };
+
+  const itemOptions = [
+    { value: "Bandage", label: "Bandage" },
+    { value: "Alcohol Wipes", label: "Alcohol Wipes" },
+    { value: "Surgical Gloves", label: "Surgical Gloves" },
+    { value: "Antibiotic Ointment", label: "Antibiotic Ointment" },
+  ];
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="bg-primary w-[940px] h-[650px] p-10 rounded-lg">
+      <div className="bg-primary w-[940px] h-[600px] p-10 rounded-lg flex flex-col">
         <Heading level={2} size="lg" className="mb-6 text-center">
           Add Item
         </Heading>
 
-        <div className="flex flex-col gap-4 w-full max-w-md mx-auto">
-          {/* ITEM (Dropdown) */}
+        <div className="flex flex-col justify-between h-full w-full max-w-md mx-auto">
+          {/* ITEM NAME (select or type new) */}
           <div>
             <label
               htmlFor="item"
               className="block text-white text-xs font-bold mb-2 font-Work-Sans"
             >
-              Item
+              Item Name
             </label>
-            <select
-              id="item"
+            <CreatableSelect
+              isClearable
               name="item"
-              value={form.item}
-              onChange={handleChange}
-              className="block w-full px-3 py-2 border border-black-300 shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-white"
-            >
-              <option value="">Select an item</option>
-              <option value="bandage">Bandage</option>
-              <option value="alcohol">Alcohol Wipes</option>
-              <option value="gloves">Surgical Gloves</option>
-              <option value="ointment">Antibiotic Ointment</option>
-              {/* Add more options as needed */}
-            </select>
+              options={itemOptions}
+              onChange={handleItemChange}
+              className="text-sm"
+              classNamePrefix="select"
+              placeholder="Select or type a new item"
+            />
           </div>
-
-          {/* NAME */}
-          <Input
-            label="Name"
-            id="name"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            inputClassName="bg-white"
-          />
 
           {/* QUANTITY */}
           <Input
