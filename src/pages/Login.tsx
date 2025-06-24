@@ -6,15 +6,10 @@ import { useAuth } from "../lib/db/db.auth";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
-  const { user, login } = useAuth();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-
-  // If already authentticated, go to dashboard
-  useEffect(() => {
-    if (user) navigate("/dashboard");
-  }, [user]);
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin: React.FormEventHandler<HTMLFormElement> = async (
     event
@@ -22,15 +17,16 @@ function Login() {
     event.preventDefault();
 
     // Fields are missing
-    if (username.trim() === "" || password.trim() === "") {
+    if (email.trim() === "" || password.trim() === "") {
       console.log("Login failed: Please enter both username and password.");
       alert("Please enter both username and password to log in.");
       return;
     }
 
     // Validate creds
-    const success = await login(username, password);
+    const success = await login(email, password);
     if (!success) return;
+    navigate("dashboard");
   };
 
   return (
