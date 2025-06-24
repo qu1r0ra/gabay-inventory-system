@@ -147,3 +147,21 @@ export const inventoryApi = {
     return true;
   },
 };
+
+export class ApiError extends Error {
+  constructor(message: string, public statusCode: number, public code: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export const handleApiError = (error: unknown) => {
+  if (error instanceof ApiError) throw error;
+
+  console.error("API Error:", error);
+  throw new ApiError(
+    "An unexpected error occurred",
+    500,
+    "INTERNAL_SERVER_ERROR"
+  );
+};
