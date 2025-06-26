@@ -1,8 +1,4 @@
-import {
-  createClient,
-  SignInWithPasswordCredentials,
-  User,
-} from "@supabase/supabase-js";
+import { createClient, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 // Env setup
@@ -15,7 +11,11 @@ interface IAuth {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, password: string) => Promise<boolean>;
+  register: (
+    username: string,
+    password: string,
+    is_admin?: boolean
+  ) => Promise<boolean>;
   logout: () => Promise<boolean>;
 }
 
@@ -57,9 +57,14 @@ export const AuthContextProvider = ({
    *
    * @param email
    * @param password
+   * @param is_admin
    * @returns
    */
-  const register = async (username: string, password: string) => {
+  const register = async (
+    username: string,
+    password: string,
+    is_admin: false
+  ) => {
     // Just generate a placeholder email because supabase wants an email
     const email = `${username}@gabay.org`;
 
@@ -67,11 +72,18 @@ export const AuthContextProvider = ({
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          role: is_admin ? "admin" : "user",
+          is_admin,
+        },
+      },
     });
 
     // Something went wrong
     if (error) {
       alert(error.message);
+      console.log(error, error.cause, error.code, error.message, error.name);
       return false;
     }
 
