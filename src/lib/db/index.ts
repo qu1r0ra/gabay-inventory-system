@@ -9,7 +9,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Tables } from "./db.rawtypes";
+import { Json, Tables } from "./db.rawtypes";
+import { buildSelectQuery } from "./db.querybuilder";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -36,15 +37,23 @@ const createTableHook = <T>(tableName: string) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<T[]>([]);
+    const [params, setParams] = useState<Json>({});
 
     /**
      * Fetches data from supabase.
      * To be run in useEffect.
+     *
+     * @param params  JSON parameters to filter the query
      */
-    async function getData() {
+    async function getData(params: Json) {
       // Set loading to true, so we can indicate through UI
       setLoading(true);
-      const { data, error } = await supabase.from(tableName).select();
+
+      // Build query based off `params`
+      let query = buildSelectQuery(supabase, tableName, params);
+
+      // Execute query
+      const { data, error } = await query;
 
       // Save the error or the data
       if (error) setError(error.message);
@@ -55,10 +64,10 @@ const createTableHook = <T>(tableName: string) => {
     }
 
     useEffect(() => {
-      getData();
+      getData(params); // uses state params
     });
 
-    return [data, loading, error];
+    return [getData, loading, error];
   };
 };
 
