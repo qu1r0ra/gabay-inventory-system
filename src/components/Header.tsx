@@ -2,16 +2,16 @@ import Input from "./Input";
 import Button from "./Button";
 import logo from "../assets/Logo.png";
 import { useAuth } from "../lib/db/db.auth";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 function Header() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    navigate("/");
   };
+
+  if (!user) return <Navigate to="/" />;
 
   return (
     <div className="h-[100px] bg-white sticky top-0 w-full z-10 flex items-center px-6 border-b border-black">

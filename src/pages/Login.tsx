@@ -6,15 +6,10 @@ import { useAuth } from "../lib/db/db.auth";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
-  const { user, login } = useAuth();
+  const navigate = useNavigate();
+  const { login, register } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
-
-  // If already authentticated, go to dashboard
-  useEffect(() => {
-    if (user) navigate("/dashboard");
-  }, [user]);
 
   const handleLogin: React.FormEventHandler<HTMLFormElement> = async (
     event
@@ -31,6 +26,7 @@ function Login() {
     // Validate creds
     const success = await login(username, password);
     if (!success) return;
+    navigate("dashboard");
   };
 
   return (
