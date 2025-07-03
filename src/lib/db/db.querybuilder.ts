@@ -51,22 +51,54 @@ export function buildSelectQuery(
     /**
      * Add more cases as needed. The above technically encompasses
      * all that's needed, but it might be convenient to handle the more
-     * specific database query builder functions, too, like:
+     * specific database query builder functions, too.
      */
+    const operatorMap: Record<string, string> = {
+      eq: "eq",
+      neq: "neq",
+      gt: "gt",
+      gte: "gte",
+      lt: "lt",
+      lte: "lte",
+      like: "like",
+      ilike: "ilike", // case insensitive like
+      is: "is",
+      in: "in",
+      contains: "contains",
+      containedBy: "containedBy",
+      rangeGt: "rangeGt",
+      rangeGte: "rangeGte",
+      match: "match",
+      overlaps: "overlaps",
+    };
 
     /**
-     * Handle "eq" key for equality filters (object of column-value pairs), e.g.
-     *  eq: {
-     *    name: "John",
-     *    age: 30,
-     *  },
+     * If your params object contains an operation
+     * 
+     * operation: {
+     *    column: value,
+     *    column2: value2,
+     * }
+     * 
+     * then it essentailly gets mapped into
+     * 
+     * query = query.operation(column, value).operation(column2, value2)
+     * 
+     * Note that some operations like `or`, `order`, `textSearch`, and `not`
+     * are handled differently, as they do not take a column-value pair
+     * 
      */
-    const { eq } = params;
-    if (isStringRecord(eq)) {
-      for (const column of Object.keys(eq)) {
-        query = query.eq(column, eq[column]);
+    for (const [paramKey, methodName] of Object.entries(operatorMap)) {
+      const value = params[paramKey];
+      if (isStringRecord(value)) { //
+        for (const column of Object.keys(value)) {
+          // @ts-ignore: dynamic method call
+          query = query[methodName](column, value[column]);
+        }
       }
     }
+
+
   }
 
   return query;
