@@ -58,19 +58,3 @@ async function runTests() {
   
   logger.success('Tests completed!')
 }
-
-// Check if anon key is set
-if (ANON_KEY === 'YOUR_ANON_KEY_HERE') {
-  console.log(`
-${logger.setup('SETUP REQUIRED:')}
-1. Go to your Supabase project dashboard: https://supabase.com
-2. Navigate to Settings > API
-3. Copy the "anon public" key (starts with 'eyJ...')
-4. Replace 'YOUR_ANON_KEY_HERE' in this file with your actual key
-5. Run: node test-functions.js
-
-${logger.info('Your project URL:')} ${PROJECT_URL}
-`)
-} else {
-  runTests().catch(console.error)
-} 
