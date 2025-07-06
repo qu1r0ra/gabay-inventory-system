@@ -45,17 +45,3 @@ export const logger = {
   verify: (message) => console.log(`${header('VERIFY', 'cyan')} ${message}`),
   failed: (message) => console.log(`${header('FAILED', 'red')} ${message}`)
 };
-
-// // Check if colors are supported
-// export function supportsColors() {
-//   return process.stdout.isTTY && process.env.NO_COLOR === undefined;
-// }
-
-// // Fallback to plain text if colors aren't supported
-// export function safeHeader(text, color = 'cyan') {
-//   return supportsColors() ? header(text, color) : `[${text}]`;
-// }
-
-// export function safeColored(text, color) {
-//   return supportsColors() ? colored(text, color) : text;
-// } 

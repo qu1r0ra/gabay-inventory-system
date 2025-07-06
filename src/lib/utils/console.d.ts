@@ -31,7 +31,3 @@ export const logger: {
   verify: (message: string) => void;
   failed: (message: string) => void;
 };
-
-export function supportsColors(): boolean;
-export function safeHeader(text: string, color?: string): string;
-export function safeColored(text: string, color: string): string; 
