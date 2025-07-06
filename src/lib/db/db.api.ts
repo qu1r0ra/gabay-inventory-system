@@ -131,13 +131,13 @@ export const inventoryApi = {
     logger.info(`Updating item with ID: ${id}`);
     
     if (data.name) {
-      const { error: itemError } = await supabase
-        .from("items")
-        .update({
-          name: data.name,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
+    const { error: itemError } = await supabase
+      .from("items")
+      .update({
+        name: data.name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
 
       if (itemError) {
         logger.error(`Failed to update item name: ${itemError.message}`);
@@ -165,12 +165,12 @@ export const inventoryApi = {
       if (existingStock) {
         // Update existing stock
         const { error: stockError } = await supabase
-          .from("item_stocks")
-          .update({
-            item_qty: data.stock.quantity,
-            expiry_date: data.stock.expiryDate,
-            updated_at: new Date().toISOString(),
-          })
+        .from("item_stocks")
+        .update({
+          item_qty: data.stock.quantity,
+          expiry_date: data.stock.expiryDate,
+          updated_at: new Date().toISOString(),
+        })
           .eq("lot_id", existingStock.lot_id);
 
         if (stockError) {
