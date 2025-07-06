@@ -4,7 +4,7 @@
 import { logger } from '../src/lib/utils/console.js';
 
 const PROJECT_URL = 'https://dvmdiucleurmqxsydfjc.supabase.co'
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bWRpdWNsZXVybXF4c3lkZmpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDY3NjQsImV4cCI6MjA2NDg4Mjc2NH0.TVBbwvzFPEw_Xq53PhcRNIZ1OiVFRc59hUd4vErvppw' // Replace this with your actual anon key
+const ANON_KEY = '' // Replace this with your actual anon key
 
 async function testFunction(functionName) {
   try {
