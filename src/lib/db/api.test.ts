@@ -1,13 +1,15 @@
 import { inventoryApi } from "./db.api";
+import { logger } from "../utils/console.js";
 
 export async function runInventoryApiTests() {
-  console.log("--- Starting Inventory API Tests ---");
+  logger.test("Starting Inventory API Tests");
 
   let itemId: string | null = null;
+  let lotId: string | null = null;
 
   try {
     // 1. CREATE an item
-    console.log("Testing createItem...");
+    logger.info("Testing createItem...");
     const newItemData = {
       name: `Test Item ${Date.now()}`,
       initialStock: {
@@ -17,83 +19,101 @@ export async function runInventoryApiTests() {
     };
     const createdItem = await inventoryApi.createItem(newItemData);
     itemId = createdItem.id; // Save the ID for cleanup
-    console.log("createItem SUCCESS:", createdItem);
+    logger.success("createItem SUCCESS");
 
     // 2. READ all items
-    console.log("\nTesting getItems...");
+    logger.info("Testing getItems...");
     const allItems = await inventoryApi.getItems();
-    console.log("getItems SUCCESS (first 5):", allItems.slice(0, 5));
+    logger.success(`getItems SUCCESS - Found ${allItems.length} items`);
     if (!allItems.some((item) => item.id === itemId)) {
       throw new Error("Created item not found in getItems list!");
     }
 
     // 3. READ a single item
-    console.log("\nTesting getItem...");
+    logger.info("Testing getItem...");
+    if (!itemId) throw new Error("No item ID available");
     const singleItem = await inventoryApi.getItem(itemId);
-    console.log("getItem SUCCESS:", singleItem);
+    logger.success("getItem SUCCESS");
     if (singleItem.name !== newItemData.name) {
       throw new Error("getItem returned an item with the wrong name!");
     }
 
-    // 4. UPDATE an item
-    console.log("\nTesting updateItem...");
+    // 4. GET stock by lot ID
+    logger.info("Testing getStockByLotId...");
+    if (singleItem.item_stocks && singleItem.item_stocks.length > 0) {
+      lotId = singleItem.item_stocks[0].lot_id;
+      if (lotId) {
+        const stock = await inventoryApi.getStockByLotId(lotId);
+        logger.success("getStockByLotId SUCCESS");
+        if (stock.item_qty !== 100) {
+          throw new Error("Stock quantity mismatch!");
+        }
+      }
+    } else {
+      logger.warning("No stock found for item, skipping getStockByLotId test");
+    }
+
+    // 5. UPDATE an item
+    logger.info("Testing updateItem...");
+    if (!itemId) throw new Error("No item ID available");
     const updatedItemData = { name: `${newItemData.name} (Updated)` };
     const updatedItem = await inventoryApi.updateItem(itemId, updatedItemData);
-    console.log("updateItem SUCCESS:", updatedItem);
+    logger.success("updateItem SUCCESS");
     if (updatedItem.name !== updatedItemData.name) {
       throw new Error("updateItem did not update the name correctly!");
     }
 
-    // 5. UPDATE stock
-    console.log("\nTesting updateStock...");
-    const lotId = singleItem.item_stocks[0]?.lot_id;
+    // 6. UPDATE stock
+    logger.info("Testing updateStock...");
     if (lotId) {
       // IMPORTANT: Replace with a real user ID from your project's Supabase dashboard
       // Go to Authentication -> Users -> Copy a User ID
       const userId = "your-real-user-id-from-supabase";
 
       if (userId === "your-real-user-id-from-supabase") {
-        console.warn(
-          "updateStock SKIPPED: Please provide a valid user ID in the test script."
-        );
+        logger.warning("updateStock SKIPPED: Please provide a valid user ID in the test script.");
       } else {
         await inventoryApi.updateStock(lotId, 150, userId);
         const itemAfterStockUpdate = await inventoryApi.getItem(itemId);
-        console.log("updateStock SUCCESS:", itemAfterStockUpdate);
+        logger.success("updateStock SUCCESS");
         if (itemAfterStockUpdate.item_stocks[0]?.item_qty !== 150) {
           throw new Error("updateStock did not update the quantity correctly!");
         }
       }
     } else {
-      console.warn(
-        "updateStock SKIPPED: No lot_id found for the created item."
-      );
+      logger.warning("updateStock SKIPPED: No lot_id found for the created item.");
     }
 
-    // 6. DELETE the item
-    console.log("\nTesting deleteItem...");
+    // 7. TEST utility functions
+    logger.info("Testing utility functions...");
+    const lowStockItems = await inventoryApi.getLowStockItems();
+    const expiringItems = await inventoryApi.getExpiringItems();
+    logger.success(`Utility functions SUCCESS - Low stock: ${lowStockItems.length}, Expiring: ${expiringItems.length}`);
+
+    // 8. DELETE the item
+    logger.info("Testing deleteItem...");
+    if (!itemId) throw new Error("No item ID available");
     await inventoryApi.deleteItem(itemId);
-    console.log("deleteItem SUCCESS");
+    logger.success("deleteItem SUCCESS");
     itemId = null;
 
     try {
-      await inventoryApi.getItem(itemId!);
-      console.error("VERIFY DELETE FAILED: Item still exists after deletion.");
+      if (!itemId) throw new Error("No item ID to verify deletion");
+      await inventoryApi.getItem(itemId);
+      logger.error("VERIFY DELETE FAILED: Item still exists after deletion.");
     } catch (error) {
-      console.log(
-        "VERIFY DELETE SUCCESS: Item not found after deletion (this is expected)."
-      );
+      logger.success("VERIFY DELETE SUCCESS: Item not found after deletion (this is expected).");
     }
   } catch (error) {
-    console.error("--- API Test Failed ---");
+    logger.error("API Test Failed");
     console.error(error);
   } finally {
     // Cleanup
     if (itemId) {
-      console.log("\n--- Cleaning up created test item... ---");
+      logger.info("Cleaning up created test item...");
       await inventoryApi.deleteItem(itemId);
-      console.log("--- Cleanup complete. ---");
+      logger.success("Cleanup complete.");
     }
-    console.log("\n--- Inventory API Tests Finished ---");
+    logger.success("Inventory API Tests Finished");
   }
 }

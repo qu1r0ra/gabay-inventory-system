@@ -1,0 +1,60 @@
+// Simple test script for Supabase Edge Functions
+// Replace the ANON_KEY with your actual anon key from Supabase dashboard
+
+import { logger } from '../src/lib/utils/console.js';
+import 'dotenv/config';
+
+const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+async function testFunction(functionName) {
+  try {
+    logger.test(`Testing ${functionName} function...`)
+    
+    const response = await fetch(`${PROJECT_URL}/functions/v1/${functionName}`, {
+    method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ANON_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    console.log(`Response status: ${response.status}`)
+    console.log(`Response headers:`, Object.fromEntries(response.headers.entries()))
+    
+    let result
+    try {
+      result = await response.json()
+    } catch (parseError) {
+      logger.error(`Failed to parse JSON response: ${parseError.message}`)
+      const textResult = await response.text()
+      console.log('Raw response:', textResult)
+      return
+    }
+    
+    if (response.ok) {
+      logger.success(`${functionName} executed successfully`)
+      if (result && Object.keys(result).length > 0) {
+        console.log('Response data:', JSON.stringify(result, null, 2))
+      } else {
+        console.log('No response data returned')
+      }
+    } else {
+      logger.error(`${functionName} failed with status ${response.status}`)
+      console.log('Error details:', JSON.stringify(result, null, 2))
+    }
+  } catch (error) {
+    logger.error(`Error calling ${functionName}: ${error.message}`)
+    console.log('Full error:', error)
+  }
+}
+
+async function runTests() {
+  logger.info('Testing deployed edge functions...\n')
+  
+  await testFunction('update-stock-status')
+  console.log('')
+  await testFunction('daily-notifications')
+  
+  logger.success('Tests completed!')
+}
