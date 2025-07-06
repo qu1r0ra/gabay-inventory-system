@@ -55,6 +55,8 @@ export type Database = {
         Row: {
           created_at: string
           expiry_date: string | null
+          is_expiring_soon: boolean | null
+          is_low_stock: boolean | null
           item_id: string
           item_qty: number
           lot_id: string
@@ -63,6 +65,8 @@ export type Database = {
         Insert: {
           created_at?: string
           expiry_date?: string | null
+          is_expiring_soon?: boolean | null
+          is_low_stock?: boolean | null
           item_id: string
           item_qty?: number
           lot_id?: string
@@ -71,6 +75,8 @@ export type Database = {
         Update: {
           created_at?: string
           expiry_date?: string | null
+          is_expiring_soon?: boolean | null
+          is_low_stock?: boolean | null
           item_id?: string
           item_qty?: number
           lot_id?: string
@@ -104,6 +110,30 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          priority: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          priority?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          priority?: string | null
+          type?: string
         }
         Relationships: []
       }
