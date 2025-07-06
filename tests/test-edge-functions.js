@@ -2,16 +2,17 @@
 // Replace the ANON_KEY with your actual anon key from Supabase dashboard
 
 import { logger } from '../src/lib/utils/console.js';
+import 'dotenv/config';
 
-const PROJECT_URL = 'https://dvmdiucleurmqxsydfjc.supabase.co'
-const ANON_KEY = '' // Replace this with your actual anon key
+const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 async function testFunction(functionName) {
   try {
     logger.test(`Testing ${functionName} function...`)
     
     const response = await fetch(`${PROJECT_URL}/functions/v1/${functionName}`, {
-      method: 'POST',
+    method: 'POST',
       headers: {
         'Authorization': `Bearer ${ANON_KEY}`,
         'Content-Type': 'application/json'

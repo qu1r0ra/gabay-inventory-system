@@ -1,9 +1,10 @@
 // Test script to create a transaction and verify item_stocks update
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '../src/lib/utils/console.js'
+import 'dotenv/config';
 
-const SUPABASE_URL = 'https://dvmdiucleurmqxsydfjc.supabase.co'
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bWRpdWNsZXVybXF4c3lkZmpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDY3NjQsImV4cCI6MjA2NDg4Mjc2NH0.TVBbwvzFPEw_Xq53PhcRNIZ1OiVFRc59hUd4vErvppw' // Replace with your actual service role key
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 
 // CONFIGURATION - Change these values to test different scenarios
 const TEST_CONFIG = {
