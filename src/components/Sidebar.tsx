@@ -10,30 +10,63 @@ function Sidebar() {
         { path: "/activity-log", text: "Activity Log" },
         { path: "/add-item", text: "Add Item" },
         { path: "/check-out", text: "Confirmation" },
-        { path: "/generate-report", text: "Generate Report" },
+        ];
+
+    const adminItems = [
+        {path: "/notifications", text: "Notifications"},
+        {path: "edit-item", text: "Edit Item"},
+        {path: "delete-item", text: "Delete Item"},
+        {path: "generate-report", text: "Generate Report"},
     ];
 
+
     return (
-        <div className="w-0 md:w-[250px] lg:w-[350px] h-screen bg-primary overflow-y-auto overflow-x-hidden flex flex-col transition-all duration-300">
-            <Heading size="3xl" className={"mt-4 text-left ml-3"}>GABAY</Heading>
-            <Heading level={2} size="xs" className={"font-Work-Sans text-left mt-8 ml-4 mb-1 font-normal"}>Overview</Heading>
+      <div className='w-[250px] border-r border-border'>
 
-            {sidebarItems.map((item) => (
-                <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                        `font-Poppins font-bold mt-2.5 mb-2.5 text-left ml-12
-                        text-sm sm:text-md md:text-lg lg:text-xl
-                        hover:scale-105 transition-transform duration-200 ease-in-out origin-left
-                        ${isActive ? 'text-accent' : 'text-white'}`
-                    }
-                >
-                    {item.text}
-                </NavLink>
-            ))}
+            <div className='h-[90px] border-b border-border flex items-center justify-center gap-3'>
+                <img src={logo} alt="Logo" className="w-12 h-12" />
+                <Heading size="xl" className="text-black">Gabay</Heading>
+            </div>
 
-            <img src={logo} className="w-[135px] h-[135px] self-center mt-auto mb-4"></img>
+            <div className="p-2 flex flex-col mt-2 pl-6">
+                <Heading size="xs" className="text-black mb-2">Menu</Heading>
+                <div className="flex flex-col space-y-2 pl-4">
+                    {sidebarItems.map((item) => (
+                    <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) =>
+                        `text-border font-Work-Sans ${
+                            isActive ? "text-secondary font-semibold" : ""
+                        }`
+                        }
+                    >
+                        {item.text}
+                    </NavLink>
+                    ))}
+                </div>
+            </div>
+
+               <div className="p-2 flex flex-col mt-2 pl-6">
+                <Heading size="xs" className="text-black mb-2">Admin</Heading>
+                <div className="flex flex-col space-y-2 pl-4">
+                    {adminItems.map((item) => (
+                    <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) =>
+                        `text-border font-Work-Sans ${
+                            isActive ? "text-secondary font-semibold" : ""
+                        }`
+                        }
+                    >
+                        {item.text}
+                    </NavLink>
+                    ))}
+                </div>
+            </div>
+
+
         </div>
     );
 }
