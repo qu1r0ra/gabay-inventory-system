@@ -1,6 +1,6 @@
 import Input from "./Input";
 import Button from "./Button";
-import logo from "../assets/Logo.png";
+import { Heading } from "./Heading";
 import { useAuth } from "../lib/db/db.auth";
 import { Navigate, useNavigate } from "react-router-dom";
 
@@ -14,26 +14,22 @@ function Header() {
   if (!user) return <Navigate to="/" />;
 
   return (
-    <div className="h-[100px] bg-white sticky top-0 w-full z-10 flex items-center px-6 border-b border-black">
-      <Input
-        label=""
-        id="search-input"
-        name="searchQuery"
-        type="search"
-        placeholder="Search..."
-        className="flex-grow max-w-lg"
-        inputClassName="rounded-2xl"
-      />
+    <div className="h-[90px] bg-white sticky top-0 w-full z-10 flex items-center justify-between px-6 border-b border-border">
+      <div>
+        <Heading size="xs" className="text-border">Welcome Back!</Heading>
+        <Heading size="sm" className="text-black">{user?.email?.split("@")[0]}</Heading>
+      </div>
 
-      <div className="flex items-center gap-4 ml-auto">
-        <Button size="xs" onClick={handleLogout}>
-          LOGOUT
-        </Button>
-        <div className="w-[2px] h-8 bg-gray-400" />
-        <img src={logo} className="rounded-full w-10 h-10" alt="Profile" />
-        <h2 className="font-Poppins font-bold text-md">
-          {user?.email?.split("@")[0]}
-        </h2>
+      <div className="flex items-center gap-8">
+        <Input
+          id="search"
+          placeholder="Search..."
+          size="custom"
+          className="w-[500px] h-10"
+          inputClassName="border-border"
+        />
+      
+        <Button size="sm" onClick={handleLogout}>Logout</Button>
       </div>
     </div>
   );

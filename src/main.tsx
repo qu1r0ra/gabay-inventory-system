@@ -8,6 +8,9 @@ import Inventory from "./pages/Inventory";
 import ActivityLog from "./pages/ActivityLog";
 import AddItem from "./pages/AddItem";
 import CheckOut from "./pages/CheckOut";
+import Notifications from "./pages/Notifications";
+import EditItem from "./pages/EditItem";  
+import DeleteItem from "./pages/DeleteItem";  
 import GenerateReport from "./pages/GenerateReport";
 import { AuthContextProvider } from "./lib/db/db.auth";
 
@@ -35,6 +38,18 @@ const router = createBrowserRouter([
       {
         path: "/check-out",
         element: <CheckOut />,
+      },
+      {
+        path: "/notifications",
+        element: <Notifications />,
+      },
+      {
+        path: "/edit-item",
+        element: <EditItem />,  
+      },
+      {
+        path: "/delete-item",
+        element: <DeleteItem />,  
       },
       {
         path: "/generate-report",
