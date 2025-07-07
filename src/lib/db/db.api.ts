@@ -17,13 +17,6 @@ export interface UpdateItemRequest {
   };
 }
 
-export interface TransactionRequest {
-  lotId: string;
-  userId: string;
-  quantityChange: number;
-  type: 'DEPOSIT' | 'DISTRIBUTE' | 'DISPOSE';
-}
-
 export interface StockUpdateRequest {
   lotId: string;
   quantity: number;
@@ -239,9 +232,27 @@ export const inventoryApi = {
     return data;
   },
 
-  async updateStock(lotId: string, quantity: number, userId: string) {
-    logger.info(`Updating stock for lot ${lotId} to ${quantity} units`);
-    
+  /**
+   * Create a transaction and rely on trigger to update stock.
+   * @param lotId - The lot to update
+   * @param userId - The user performing the transaction
+   * @param quantity - The amount to add/subtract (always positive)
+   * @param type - The transaction type
+   */
+  async createTransaction({
+    lotId,
+    userId,
+    quantity,
+    type
+  }: {
+    lotId: string,
+    userId: string,
+    quantity: number,
+    type: 'DEPOSIT' | 'DISTRIBUTE' | 'DISPOSE'
+  }) {
+    logger.info(`Creating ${type} transaction for lot ${lotId} by user ${userId} with quantity ${quantity}`);
+
+    // Fetch current stock for validation
     const { data: currentStock, error: fetchError } = await supabase
       .from("item_stocks")
       .select("item_qty")
@@ -253,55 +264,27 @@ export const inventoryApi = {
       throw fetchError;
     }
 
-    const quantityChange = quantity - currentStock.item_qty;
-    logger.info(`Quantity change: ${quantityChange} (from ${currentStock.item_qty} to ${quantity})`);
-
-    const { error: updateError } = await supabase
-      .from("item_stocks")
-      .update({
-        item_qty: quantity,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("lot_id", lotId);
-
-    if (updateError) {
-      logger.error(`Failed to update stock: ${updateError.message}`);
-      throw updateError;
+    let quantityChange = 0;
+    if (type === 'DEPOSIT') {
+      quantityChange = quantity;
+    } else if (type === 'DISTRIBUTE' || type === 'DISPOSE') {
+      if (currentStock.item_qty < quantity) {
+        logger.error(`Insufficient stock: trying to subtract ${quantity} from ${currentStock.item_qty}`);
+        throw new Error(`Insufficient stock: cannot subtract ${quantity} from ${currentStock.item_qty}`);
+      }
+      quantityChange = -quantity;
+    } else {
+      throw new Error(`Invalid transaction type: ${type}`);
     }
 
-    const transactionType = quantity > currentStock.item_qty ? "DEPOSIT" : "DISTRIBUTE";
-    logger.info(`Creating ${transactionType} transaction`);
-
-    const { error: transactionError } = await supabase
+    // Insert transaction
+    const { data: transaction, error: transactionError } = await supabase
       .from("transactions")
       .insert({
         lot_id: lotId,
         user_id: userId,
         item_qty_change: quantityChange,
-        type: transactionType,
-      });
-
-    if (transactionError) {
-      logger.error(`Failed to create transaction: ${transactionError.message}`);
-      throw transactionError;
-    }
-
-    logger.success(`Stock updated and transaction recorded successfully`);
-    return true;
-  },
-
-  async createTransaction(data: TransactionRequest) {
-    logger.info(`Creating ${data.type} transaction for lot ${data.lotId}`);
-    logger.info(`Quantity change: ${data.quantityChange}`);
-    
-    // First, create the transaction
-    const { data: transaction, error: transactionError } = await supabase
-      .from("transactions")
-      .insert({
-        lot_id: data.lotId,
-        user_id: data.userId,
-        item_qty_change: data.quantityChange,
-        type: data.type,
+        type: type,
       })
       .select()
       .single();
@@ -313,12 +296,11 @@ export const inventoryApi = {
 
     logger.success(`Transaction created with ID: ${transaction.id}`);
 
-    // The stock update should be handled by database triggers
-    // But we can verify it was updated
+    // Fetch updated stock
     const { data: updatedStock, error: stockError } = await supabase
       .from("item_stocks")
       .select("item_qty")
-      .eq("lot_id", data.lotId)
+      .eq("lot_id", lotId)
       .single();
 
     if (stockError) {
@@ -455,6 +437,31 @@ export const inventoryApi = {
     }
     
     logger.success('Withdrawal notification created');
+  },
+
+  /**
+   * Apply a correction to item stock by inserting into corrections table.
+   * The trigger will set item_qty_before and update item_stocks.
+   */
+  async updateStocks(lotId: string, userId: string, itemQtyAfter: number) {
+    logger.info(`Applying correction for lot ${lotId} by user ${userId} to new quantity ${itemQtyAfter}`);
+
+    const { error } = await supabase
+      .from("corrections")
+      .insert({
+        lot_id: lotId,
+        user_id: userId,
+        item_qty_after: itemQtyAfter,
+        // item_qty_before will be set by the trigger
+      });
+
+    if (error) {
+      logger.error(`Failed to apply correction: ${error.message}`);
+      throw error;
+    }
+
+    logger.success(`Correction applied; stock will be updated by trigger.`);
+    return true;
   }
 };
 
