@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
 import RootRouter from "./RootRouter";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import ActivityLog from "./pages/ActivityLog";
@@ -15,6 +17,14 @@ import GenerateReport from "./pages/GenerateReport";
 import { AuthContextProvider } from "./lib/db/db.auth";
 
 const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/sign-up",
+    element: <SignUp />,
+  },
   {
     element: <RootRouter />,
     path: "/",

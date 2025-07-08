@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Login from "./pages/Login";
@@ -6,7 +6,9 @@ import { useAuth } from "./lib/db/db.auth";
 
 function RootRouter() {
   const { user } = useAuth();
-  if (!user) return <Login />;
+
+  // Optional: You could still protect internal routes here
+  if (!user) return <Navigate to="/login" />;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -20,5 +22,6 @@ function RootRouter() {
     </div>
   );
 }
+
 
 export default RootRouter;
