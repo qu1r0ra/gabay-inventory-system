@@ -15,6 +15,7 @@ import EditItem from "./pages/EditItem";
 import DeleteItem from "./pages/DeleteItem";  
 import GenerateReport from "./pages/GenerateReport";
 import { AuthContextProvider } from "./lib/db/db.auth";
+import { SearchProvider } from "./contexts/SearchContext";
 
 const router = createBrowserRouter([
   {
@@ -72,7 +73,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthContextProvider>
-      <RouterProvider router={router}></RouterProvider>
+      <SearchProvider>
+        <RouterProvider router={router} />
+      </SearchProvider>
     </AuthContextProvider>
   </StrictMode>
 );

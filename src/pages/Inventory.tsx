@@ -1,89 +1,174 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import InventoryTable from "../components/InventoryTable";
 import Button from "../components/Button";
-import { Link } from "react-router-dom";
+import { inventoryApi } from "../lib/db/db.api";
+import { useNavigate } from "react-router-dom";
+import { useSearch } from "../contexts/SearchContext";
 
 const columns = [
-  { key: "icon", label: "ICON" },
-  { key: "name", label: "ITEM NAME" },
-  { key: "qty", label: "QTY" },
-  { key: "lotId", label: "LOT ID" },
-  { key: "expDate", label: "EXP DATE" },
-  { key: "lastModified", label: "LAST MODIFIED" },
-  { key: "action", label: "ACTION" },
+  { key: "name", label: "Item Name" },
+  { key: "lotId", label: "Lot ID" },
+  { key: "qty", label: "Qty" },
+  { key: "expDate", label: "Expiration Date" },
+  { key: "lastModified", label: "Last Modified" },
+  { key: "action", label: "Action" },
 ];
 
-const initialData = [
-  { icon: "", name: "Bandage", qty: 120, lotId: "A001", expDate: "2026-01-01", lastModified: "2025-06-12", action: "" },
-  { icon: "", name: "Alcohol Wipes", qty: 80, lotId: "B002", expDate: "2025-12-01", lastModified: "2025-06-10", action: "" },
-  { icon: "", name: "Gauze Pads", qty: 50, lotId: "C003", expDate: "2027-03-15", lastModified: "2025-06-08", action: "" },
-  { icon: "", name: "Antibiotic Ointment", qty: 70, lotId: "D004", expDate: "2025-09-10", lastModified: "2025-06-06", action: "" },
-  { icon: "", name: "Surgical Gloves", qty: 200, lotId: "E005", expDate: "2026-11-20", lastModified: "2025-06-05", action: "" },
-  { icon: "", name: "Thermometer", qty: 30, lotId: "F006", expDate: "N/A", lastModified: "2025-06-03", action: "" },
-  { icon: "", name: "Face Masks", qty: 500, lotId: "G007", expDate: "2026-06-30", lastModified: "2025-06-02", action: "" },
-  { icon: "", name: "Scissors", qty: 25, lotId: "H008", expDate: "N/A", lastModified: "2025-06-01", action: "" },
-  { icon: "", name: "Cotton Balls", qty: 150, lotId: "I009", expDate: "2025-10-05", lastModified: "2025-05-30", action: "" },
-  { icon: "", name: "Eye Drops", qty: 60, lotId: "J010", expDate: "2025-08-08", lastModified: "2025-05-28", action: "" },
-  { icon: "", name: "Burn Cream", qty: 90, lotId: "K011", expDate: "2026-02-15", lastModified: "2025-05-25", action: "" },
-  { icon: "", name: "Medical Tape", qty: 110, lotId: "L012", expDate: "2026-04-01", lastModified: "2025-05-22", action: "" },
-];
+const ROWS_PER_PAGE = 14;
 
 function Inventory() {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(1);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+  const { query } = useSearch();
+  const [rawData, setRawData] = useState<any[]>([]);
+  const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("name");
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
-    const calculateRows = () => {
-      const containerHeight = containerRef.current?.offsetHeight ?? 650;
-      const rowHeight = 50;
-      const theadHeight = 50;
-      const footerPadding = 20;
-      const available = containerHeight - theadHeight - footerPadding;
-      const newRowsPerPage = Math.floor(available / rowHeight) || 1;
-
-      setRowsPerPage(newRowsPerPage);
-
-      const maxPage = Math.max(0, Math.floor((initialData.length - 1) / newRowsPerPage));
-      setCurrentPage(prev => Math.min(prev, maxPage));
+    const fetchItems = async () => {
+      try {
+        const result = await inventoryApi.getItems();
+        const flattened = result.flatMap((item: any) =>
+          item.item_stocks.map((stock: any) => ({
+            name: item.name,
+            lotId: stock.lot_id,
+            qty: stock.item_qty,
+            expDate: stock.expiry_date?.split("T")[0] || "N/A",
+            lastModified: stock.updated_at?.split("T")[0] || "N/A",
+            isLowStock: stock.is_low_stock,
+            isExpiringSoon: stock.is_expiring_soon,
+            action: "",
+          }))
+        );
+        setRawData(flattened);
+      } catch (error) {
+        console.error("Error loading items:", error);
+      }
     };
 
-    calculateRows();
-    window.addEventListener("resize", calculateRows);
-    return () => window.removeEventListener("resize", calculateRows);
+    fetchItems();
   }, []);
 
-  const totalPages = Math.ceil(initialData.length / rowsPerPage);
-  const startIdx = currentPage * rowsPerPage;
-  const endIdx = Math.min(startIdx + rowsPerPage, initialData.length);
-  const visibleData = initialData.slice(startIdx, endIdx);
+  // Filter, Search, Sort
+  useEffect(() => {
+    let result = [...rawData];
 
-  const hasNext = currentPage < totalPages - 1;
-  const hasPrev = currentPage > 0;
+    // Filter
+    if (filter === "low") {
+      result = result.filter((item) => item.isLowStock);
+    } else if (filter === "expiring") {
+      result = result.filter((item) => item.isExpiringSoon);
+    } else if (filter === "expired") {
+      result = result.filter((item) => {
+        const today = new Date();
+        const exp = new Date(item.expDate);
+        return exp < today;
+      });
+    }
+
+    // Search
+    if (query.trim() !== "") {
+      result = result.filter((item) =>
+        item.name.toLowerCase().includes(query.toLowerCase()) ||
+        item.lotId.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      if (sort === "qty_asc") return a.qty - b.qty;
+      if (sort === "qty_desc") return b.qty - a.qty;
+      if (sort === "exp_asc") return new Date(a.expDate) > new Date(b.expDate) ? 1 : -1;
+      if (sort === "exp_desc") return new Date(a.expDate) < new Date(b.expDate) ? 1 : -1;
+      if (sort === "name") return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+    setFilteredData(result);
+    setPage(0); // reset to first page on change
+  }, [rawData, filter, sort, query]); // <-- make sure query is included here
+
+  const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+  const startIdx = page * ROWS_PER_PAGE;
+  const endIdx = startIdx + ROWS_PER_PAGE;
+  const visibleRows = filteredData.slice(startIdx, endIdx);
+
+  const paddedData =
+    visibleRows.length < ROWS_PER_PAGE
+      ? [
+          ...visibleRows,
+          ...Array.from({ length: ROWS_PER_PAGE - visibleRows.length }).map(() => ({
+            name: "",
+            lotId: "",
+            qty: "",
+            expDate: "",
+            lastModified: "",
+            action: "",
+          })),
+        ]
+      : visibleRows;
 
   return (
-    <div className="flex justify-center min-h-screen p-4">
-      <div className="w-full max-w-[940px] flex flex-col">
-
-        <Link to="/add-item">
-          <Button size="xs" className="mb-4 self-start">ADD ITEM</Button>
-        </Link>
-
-        <div ref={containerRef} className="h-[650px]">
-          <InventoryTable columns={columns} data={visibleData} />
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
+      {/* Container */}
+      <div className="w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
+        {/* Header */}
+        <div className="h-[70px] bg-primary px-4 py-3 flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button size="xs" onClick={() => navigate("/add-item")}>
+              Add Item
+            </Button>
+            <Button size="xs" onClick={() => navigate("/check-out")}>
+              Confirm
+            </Button>
+          </div>
+          <div className="flex gap-4">
+            <select
+              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="low">Low Quantity</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="expired">Expired</option>
+            </select>
+            <select
+              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="qty_asc">Qty: Low to High</option>
+              <option value="qty_desc">Qty: High to Low</option>
+              <option value="exp_asc">Expiry: Soonest First</option>
+              <option value="exp_desc">Expiry: Latest First</option>
+              <option value="name">Name: A-Z</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex justify-center items-center gap-12 mt-4">
-          <Button size="sm" disabled={!hasPrev} onClick={() => setCurrentPage((p) => Math.max(p - 1, 0))}>
-            BACK
+        {/* Table */}
+        <InventoryTable columns={columns} data={paddedData} />
+      </div>
+
+      {/* Pagination */}
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex gap-6">
+          <Button size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))}>
+            Back
           </Button>
-          <span className="text-white text-sm">
-            Page {currentPage + 1} of {totalPages}
-          </span>
-          <Button size="sm" disabled={!hasNext} onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages - 1))}>
-            NEXT
+          <Button
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+          >
+            Next
           </Button>
         </div>
+        <span className="text-sm text-black font-Work-Sans">
+          Page {page + 1} of {totalPages || 1}
+        </span>
       </div>
     </div>
   );
