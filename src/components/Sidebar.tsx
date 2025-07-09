@@ -25,7 +25,7 @@ function Sidebar() {
 
             <div className='h-[90px] border-b border-border flex items-center justify-center gap-3'>
                 <img src={logo} alt="Logo" className="w-12 h-12" />
-                <Heading size="xl" className="text-black">Gabay</Heading>
+                <Heading size="xl" className="text-black">GABAY</Heading>
             </div>
 
             <div className="p-2 flex flex-col mt-2 pl-6">
