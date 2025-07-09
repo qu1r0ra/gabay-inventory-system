@@ -1,6 +1,5 @@
 import React from "react";
 import NumberStepper from "./NumberStepper";
-import def from "../assets/default.jpg";
 
 type Column = {
   key: string;
@@ -14,57 +13,74 @@ type TableProps = {
 
 function InventoryTable({ columns, data }: TableProps) {
   return (
-    <div className="w-full max-w-[940px] border-white">
-      <table className="table-auto w-full text-center text-sm text-white">
+    <div className="w-[1000px] rounded-md overflow-hidden">
+      <table className="w-full table-fixed border-collapse text-center">
+        {/* Column widths */}
         <colgroup>
-          <col className="w-[80px]" />
+          <col className="w-[220px]" /> {/* Item Name */}
+          <col className="w-[180px]" /> {/* Lot ID */}
+          <col className="w-[75px]" />
           <col className="w-[200px]" />
-          <col className="w-[80px]" />
-          <col className="w-[80px]" />
           <col className="w-[200px]" />
-          <col className="w-[200px]" />
-          <col className="w-[100px]" />
+          <col className="w-[125px]" />
         </colgroup>
-        <thead className="bg-primary">
-          <tr>
-            {columns.map((column) => (
-              <th key={column.key} className="px-4 py-3 font-bold font-Poppins">
-                {column.label}
+
+        {/* Table Head */}
+        <thead>
+          <tr className="bg-white h-[50px] text-black">
+            {columns.map((col, index) => (
+              <th
+                key={col.key}
+                className={`font-bold font-Poppins text-sm border-b border-border ${
+                  index !== columns.length - 1 ? "border-r border-border" : ""
+                }`}
+              >
+                {col.label}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="bg-secondary">
-          {data.map((row, rowIndex) => (
-            <tr
-              key={rowIndex}
-              className="border-t border-white"
-              style={{ height: "50px" }}
-            >
-              {columns.map((column) => (
-                <td key={column.key} className="px-4 py-2 font-Work-Sans">
-                  {column.key === "action" ? (
-                    <NumberStepper
-                      min={0}
-                      max={99}
-                      initial={0}
-                      onChange={(val) =>
-                        console.log(`Row ${rowIndex} changed to:`, val)
-                      }
-                    />
-                  ) : column.key === "icon" ? (
-                    <img
-                      src={def}
-                      alt="icon"
-                      className="rounded-full w-[35px] h-[35px] mx-auto"
-                    />
-                  ) : (
-                    row[column.key]
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
+
+        {/* Table Body */}
+        <tbody>
+          {data.map((row, idx) => {
+            const isEmpty = Object.values(row).every((val) => val === "");
+
+            return (
+              <tr
+                key={idx}
+                className="bg-white h-[50px] text-black font-Work-Sans text-sm border-b border-border"
+              >
+                {columns.map((col, index) => (
+                  <td
+                    key={col.key}
+                    className={`align-middle ${
+                      index !== columns.length - 1
+                        ? "border-r border-border"
+                        : ""
+                    }`}
+                  >
+                    {col.key === "action" ? (
+                      isEmpty ? null : (
+                        <div className="flex justify-center items-center">
+                          <NumberStepper
+                            min={0}
+                            max={999}
+                            initial={0}
+                            onChange={(val) =>
+                              console.log(`Row ${idx} changed to:`, val)
+                            }
+                          />
+                        </div>
+                      )
+                    ) : (
+                      row[col.key]
+                    )}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

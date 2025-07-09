@@ -14,7 +14,6 @@ const baseStyles =
   'bg-white border border-black rounded-4xl font-Poppins text-black ' +
   'hover:bg-secondary hover:text-white hover:border-0 ' +
   'active:bg-accent active:text-white active:border-0 ' +
-  'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-400 ' +
   'transition-colors duration-200 ' +
   'flex items-center justify-center';
 
