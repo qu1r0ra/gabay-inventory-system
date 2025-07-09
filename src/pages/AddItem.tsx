@@ -1,15 +1,11 @@
-// ! Blank
-
-import AddItemForm from "../components/AddItemForm"
+import ItemForm from "../components/ItemForm";
 
 function AddItem() {
-    return (
-        <>
-            <div className="flex justify-center min-h-screen flex-col items-center">
-                <AddItemForm/>
-            </div>
-        </>
-    )
+  return (
+    <div className="flex justify-center min-h-screen flex-col items-center">
+      <ItemForm mode="add" />
+    </div>
+  );
 }
 
-export default AddItem
+export default AddItem;
