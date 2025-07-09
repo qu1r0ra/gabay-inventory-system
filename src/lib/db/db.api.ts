@@ -316,6 +316,72 @@ export const inventoryApi = {
     };
   },
 
+  /**
+   * Get items with stock less than or equal to the given threshold (default 10).
+   */
+  async getLowStockItems(threshold: number = 10) {
+    logger.info(`Fetching items with stock <= ${threshold}`);
+    const { data, error } = await supabase
+      .from('item_stocks')
+      .select(`*, items ( name )`)
+      .lte('item_qty', threshold)
+      .order('item_qty', { ascending: true });
+
+    if (error) {
+      logger.error(`Failed to fetch low stock items: ${error.message}`);
+      throw error;
+    }
+    logger.success(`Found ${data?.length || 0} items with low stock`);
+    return data;
+  },
+
+  /**
+   * Get items expiring within the next X days (default 30 days).
+   */
+  async getNearExpiryItems(days: number = 30) {
+    logger.info(`Fetching items expiring within ${days} days`);
+    const today = new Date();
+    const future = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+    const todayStr = today.toISOString().slice(0, 10);
+    const futureStr = future.toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('item_stocks')
+      .select(`*, items ( name )`)
+      .not('expiry_date', 'is', null)
+      .gte('expiry_date', todayStr)
+      .lte('expiry_date', futureStr)
+      .order('expiry_date', { ascending: true });
+
+    if (error) {
+      logger.error(`Failed to fetch near expiry items: ${error.message}`);
+      throw error;
+    }
+    logger.success(`Found ${data?.length || 0} items expiring soon`);
+    return data;
+  },
+
+  /**
+   * Get items that are already expired (expiry_date < today).
+   */
+  async getExpiredItems() {
+    logger.info('Fetching expired items');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('item_stocks')
+      .select(`*, items ( name )`)
+      .not('expiry_date', 'is', null)
+      .lt('expiry_date', todayStr)
+      .order('expiry_date', { ascending: true });
+
+    if (error) {
+      logger.error(`Failed to fetch expired items: ${error.message}`);
+      throw error;
+    }
+    logger.success(`Found ${data?.length || 0} expired items`);
+    return data;
+  },
+
+  // TODO: Not finalized. Feel free to revise accordingly.
   async generateReport(filters: {
     startDate: string;
     endDate: string;
@@ -353,53 +419,7 @@ export const inventoryApi = {
     return data;
   },
 
-  async getLowStockItems() {
-    logger.info('Fetching items with low stock');
-    
-    const { data, error } = await supabase
-      .from('item_stocks')
-      .select(`
-        *,
-        items (
-          name
-        )
-      `)
-      .eq('is_low_stock', true)
-      .order('item_qty', { ascending: true });
-
-    if (error) {
-      logger.error(`Failed to fetch low stock items: ${error.message}`);
-      throw error;
-    }
-    
-    logger.success(`Found ${data?.length || 0} items with low stock`);
-    return data;
-  },
-
-  async getExpiringItems() {
-    logger.info('Fetching items expiring soon');
-    
-    const { data, error } = await supabase
-      .from('item_stocks')
-      .select(`
-        *,
-        items (
-          name
-        )
-      `)
-      .eq('is_expiring_soon', true)
-      .not('expiry_date', 'is', null)
-      .order('expiry_date', { ascending: true });
-
-    if (error) {
-      logger.error(`Failed to fetch expiring items: ${error.message}`);
-      throw error;
-    }
-    
-    logger.success(`Found ${data?.length || 0} items expiring soon`);
-    return data;
-  },
-
+  // TODO: Not finalized. Feel free to revise accordingly.
   async createNotification(data: {
     message: string;
     type: string;
@@ -420,49 +440,25 @@ export const inventoryApi = {
     return true;
   },
 
-  async notifyWithdrawal(itemName: string, quantity: number, userId: string) {
-    logger.info(`Creating withdrawal notification for ${itemName}`);
+  // // TODO: May not be needed anymore.
+  // async notifyWithdrawal(itemName: string, quantity: number, userId: string) {
+  //   logger.info(`Creating withdrawal notification for ${itemName}`);
     
-    const { error } = await supabase
-      .from('notifications')
-      .insert({
-        message: `Withdrawal: ${itemName} - ${quantity} units`,
-        type: 'withdrawal',
-        priority: 'high'
-      });
+  //   const { error } = await supabase
+  //     .from('notifications')
+  //     .insert({
+  //       message: `Withdrawal: ${itemName} - ${quantity} units`,
+  //       type: 'withdrawal',
+  //       priority: 'high'
+  //     });
 
-    if (error) {
-      logger.error(`Failed to create withdrawal notification: ${error.message}`);
-      throw error;
-    }
+  //   if (error) {
+  //     logger.error(`Failed to create withdrawal notification: ${error.message}`);
+  //     throw error;
+  //   }
     
-    logger.success('Withdrawal notification created');
-  },
-
-  /**
-   * Apply a correction to item stock by inserting into corrections table.
-   * The trigger will set item_qty_before and update item_stocks.
-   */
-  async updateStocks(lotId: string, userId: string, itemQtyAfter: number) {
-    logger.info(`Applying correction for lot ${lotId} by user ${userId} to new quantity ${itemQtyAfter}`);
-
-    const { error } = await supabase
-      .from("corrections")
-      .insert({
-        lot_id: lotId,
-        user_id: userId,
-        item_qty_after: itemQtyAfter,
-        // item_qty_before will be set by the trigger
-      });
-
-    if (error) {
-      logger.error(`Failed to apply correction: ${error.message}`);
-      throw error;
-    }
-
-    logger.success(`Correction applied; stock will be updated by trigger.`);
-    return true;
-  }
+  //   logger.success('Withdrawal notification created');
+  // },
 };
 
 export class ApiError extends Error {
