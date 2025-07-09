@@ -233,6 +233,53 @@ export const inventoryApi = {
   },
 
   /**
+   * Apply a correction to item stock by inserting into corrections table.
+   * The trigger will set item_qty_before and update item_stocks.
+   */
+  async updateStocks(lotId: string, userId: string, itemQtyAfter: number) {
+    logger.info(`Applying correction for lot ${lotId} by user ${userId} to new quantity ${itemQtyAfter}`);
+
+    // Validate userId exists
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+    if (userError || !user) {
+      logger.error(`Invalid user ID: ${userId}`);
+      throw new Error('Invalid user ID');
+    }
+
+    // Validate lotId exists
+    const { data: lot, error: lotError } = await supabase
+      .from('item_stocks')
+      .select('lot_id')
+      .eq('lot_id', lotId)
+      .single();
+    if (lotError || !lot) {
+      logger.error(`Invalid lot ID: ${lotId}`);
+      throw new Error('Invalid lot ID');
+    }
+
+    const { error } = await supabase
+      .from("corrections")
+      .insert({
+        lot_id: lotId,
+        user_id: userId,
+        item_qty_after: itemQtyAfter,
+        // item_qty_before will be set by the trigger
+      });
+
+    if (error) {
+      logger.error(`Failed to apply correction: ${error.message}`);
+      throw error;
+    }
+
+    logger.success(`Correction applied; stock will be updated by trigger.`);
+    return true;
+  },
+
+  /**
    * Create a transaction and rely on trigger to update stock.
    * @param lotId - The lot to update
    * @param userId - The user performing the transaction
@@ -251,6 +298,17 @@ export const inventoryApi = {
     type: 'DEPOSIT' | 'DISTRIBUTE' | 'DISPOSE'
   }) {
     logger.info(`Creating ${type} transaction for lot ${lotId} by user ${userId} with quantity ${quantity}`);
+
+    // Validate userId exists
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+    if (userError || !user) {
+      logger.error(`Invalid user ID: ${userId}`);
+      throw new Error('Invalid user ID');
+    }
 
     // Fetch current stock for validation
     const { data: currentStock, error: fetchError } = await supabase
