@@ -281,10 +281,6 @@ export const inventoryApi = {
 
   /**
    * Create a transaction and rely on trigger to update stock.
-   * @param lotId - The lot to update
-   * @param userId - The user performing the transaction
-   * @param quantity - The amount to add/subtract (always positive)
-   * @param type - The transaction type
    */
   async createTransaction({
     lotId,
@@ -375,7 +371,7 @@ export const inventoryApi = {
   },
 
   /**
-   * Get items with stock less than or equal to the given threshold (default 10).
+   * Get items with low stock (quantity <= threshold).
    */
   async getLowStockItems(threshold: number = 10) {
     logger.info(`Fetching items with stock <= ${threshold}`);
@@ -477,46 +473,126 @@ export const inventoryApi = {
     return data;
   },
 
-  // TODO: Not finalized. Feel free to revise accordingly.
-  async createNotification(data: {
-    message: string;
-    type: string;
-    priority?: string;
-  }) {
-    logger.info(`Creating notification: ${data.type}`);
+  /**
+   * Get all notifications with item details, ordered by most recent first.
+   */
+  async getNotifications() {
+    logger.info('Fetching all notifications');
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('notifications')
-      .insert(data);
+      .select(`
+        *,
+        item_stocks!inner (
+          item_qty,
+          expiry_date,
+          items (name)
+        )
+      `)
+      .order('created_at', { ascending: false });
 
     if (error) {
-      logger.error(`Failed to create notification: ${error.message}`);
+      logger.error(`Failed to fetch notifications: ${error.message}`);
       throw error;
     }
     
-    logger.success('Notification created successfully');
-    return true;
+    logger.success(`Fetched ${data?.length || 0} notifications`);
+    return data;
   },
 
-  // // TODO: May not be needed anymore.
-  // async notifyWithdrawal(itemName: string, quantity: number, userId: string) {
-  //   logger.info(`Creating withdrawal notification for ${itemName}`);
+  /**
+   * Get notifications by type (LOW_STOCK, NEAR_EXPIRY, EXPIRED).
+   */
+  async getNotificationsByType(type: 'LOW_STOCK' | 'NEAR_EXPIRY' | 'EXPIRED') {
+    logger.info(`Fetching notifications of type: ${type}`);
     
-  //   const { error } = await supabase
-  //     .from('notifications')
-  //     .insert({
-  //       message: `Withdrawal: ${itemName} - ${quantity} units`,
-  //       type: 'withdrawal',
-  //       priority: 'high'
-  //     });
+    const { data, error } = await supabase
+      .from('notifications')
+      .select(`
+        *,
+        item_stocks!inner (
+          item_qty,
+          expiry_date,
+          items (name)
+        )
+      `)
+      .eq('type', type)
+      .order('created_at', { ascending: false });
 
-  //   if (error) {
-  //     logger.error(`Failed to create withdrawal notification: ${error.message}`);
-  //     throw error;
-  //   }
+    if (error) {
+      logger.error(`Failed to fetch ${type} notifications: ${error.message}`);
+      throw error;
+    }
     
-  //   logger.success('Withdrawal notification created');
-  // },
+    logger.success(`Fetched ${data?.length || 0} ${type} notifications`);
+    return data;
+  },
+
+  /**
+   * Get recent notifications (last 30 days).
+   */
+  async getRecentNotifications(days: number = 30) {
+    logger.info(`Fetching notifications from last ${days} days`);
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .select(`
+        *,
+        item_stocks!inner (
+          item_qty,
+          expiry_date,
+          items (name)
+        )
+      `)
+      .gte('created_at', cutoffDate.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error(`Failed to fetch recent notifications: ${error.message}`);
+      throw error;
+    }
+    
+    logger.success(`Fetched ${data?.length || 0} recent notifications`);
+    return data;
+  },
+
+  /**
+ * Get detailed item information for a list of lot IDs.
+ * Useful for displaying detailed information when users click on notifications.
+ */
+  async getItemsByLotIds(lotIds: string[]) {
+    logger.info(`Fetching detailed item information for ${lotIds.length} lot IDs`);
+    
+    if (!lotIds || lotIds.length === 0) {
+      logger.warning('No lot IDs provided');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('item_stocks')
+      .select(`
+        *,
+        items (
+          id,
+          name,
+          created_at,
+          updated_at
+        )
+      `)
+      .in('lot_id', lotIds)
+      .order('items(name)', { ascending: true });
+
+    if (error) {
+      logger.error(`Failed to fetch items by lot IDs: ${error.message}`);
+      throw error;
+    }
+    
+    logger.success(`Fetched ${data?.length || 0} items with detailed information`);
+    return data;
+  },
 };
 
 export class ApiError extends Error {
