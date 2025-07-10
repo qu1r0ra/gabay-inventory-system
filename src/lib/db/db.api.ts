@@ -6,15 +6,13 @@ export interface CreateItemRequest {
   initialStock?: {
     quantity: number;
     expiryDate?: string;
+    lotId: string;
+    userId: string;
   };
 }
 
 export interface UpdateItemRequest {
   name?: string;
-  stock?: {
-    quantity?: number;
-    expiryDate?: string;
-  };
 }
 
 export interface StockUpdateRequest {
@@ -41,21 +39,14 @@ export const inventoryApi = {
     logger.success(`Item created with ID: ${item.id}`);
 
     if (data.initialStock) {
-      logger.info(`Adding initial stock: ${data.initialStock.quantity} units`);
-      
-      const { error: stockError } = await supabase.from("item_stocks").insert({
-        item_id: item.id,
-        item_qty: data.initialStock.quantity,
-        expiry_date: data.initialStock.expiryDate,
-        lot_id: crypto.randomUUID(), // Generate a unique lot ID
+      logger.info(`Depositing initial stock: ${data.initialStock.quantity} units`);
+      await inventoryApi.createTransaction({
+        lotId: data.initialStock.lotId,
+        userId: data.initialStock.userId,
+        quantity: data.initialStock.quantity,
+        type: 'DEPOSIT'
       });
-
-      if (stockError) {
-        logger.error(`Failed to add initial stock: ${stockError.message}`);
-        throw stockError;
-      }
-      
-      logger.success(`Initial stock added successfully`);
+      logger.success(`Initial stock deposited successfully`);
     }
 
     return item;
@@ -66,19 +57,18 @@ export const inventoryApi = {
     
     const { data, error } = await supabase
       .from("items")
-      .select(
-        `
-        *,
+      .select(`
+        id,
+        name,
+        created_at,
+        updated_at,
         item_stocks (
           lot_id,
           item_qty,
           expiry_date,
-          is_low_stock,
-          is_expiring_soon,
           updated_at
         )
-      `
-      )
+      `)
       .order("name");
 
     if (error) {
@@ -95,19 +85,18 @@ export const inventoryApi = {
     
     const { data, error } = await supabase
       .from("items")
-      .select(
-        `
-        *,
+      .select(`
+        id,
+        name,
+        created_at,
+        updated_at,
         item_stocks (
           lot_id,
           item_qty,
           expiry_date,
-          is_low_stock,
-          is_expiring_soon,
           updated_at
         )
-      `
-      )
+      `)
       .eq("id", id)
       .single();
 
@@ -124,13 +113,13 @@ export const inventoryApi = {
     logger.info(`Updating item with ID: ${id}`);
     
     if (data.name) {
-    const { error: itemError } = await supabase
-      .from("items")
-      .update({
-        name: data.name,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+      const { error: itemError } = await supabase
+        .from("items")
+        .update({
+          name: data.name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
 
       if (itemError) {
         logger.error(`Failed to update item name: ${itemError.message}`);
@@ -138,58 +127,6 @@ export const inventoryApi = {
       }
       
       logger.success(`Item name updated to: ${data.name}`);
-    }
-
-    if (data.stock) {
-      logger.info(`Updating stock for item ${id}`);
-      
-      // Get the first stock record for this item (or create one if none exists)
-      const { data: existingStock, error: fetchError } = await supabase
-        .from("item_stocks")
-        .select("lot_id")
-        .eq("item_id", id)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        logger.error(`Failed to fetch existing stock: ${fetchError.message}`);
-        throw fetchError;
-      }
-
-      if (existingStock) {
-        // Update existing stock
-        const { error: stockError } = await supabase
-        .from("item_stocks")
-        .update({
-          item_qty: data.stock.quantity,
-          expiry_date: data.stock.expiryDate,
-          updated_at: new Date().toISOString(),
-        })
-          .eq("lot_id", existingStock.lot_id);
-
-        if (stockError) {
-          logger.error(`Failed to update stock: ${stockError.message}`);
-          throw stockError;
-        }
-        
-        logger.success(`Stock updated successfully`);
-      } else {
-        // Create new stock record
-        const { error: stockError } = await supabase
-          .from("item_stocks")
-          .insert({
-            item_id: id,
-            item_qty: data.stock.quantity,
-            expiry_date: data.stock.expiryDate,
-            lot_id: crypto.randomUUID(),
-          });
-
-        if (stockError) {
-          logger.error(`Failed to create stock: ${stockError.message}`);
-          throw stockError;
-        }
-        
-        logger.success(`Stock created successfully`);
-      }
     }
 
     return this.getItem(id);
@@ -209,6 +146,7 @@ export const inventoryApi = {
     return true;
   },
 
+  // TODO: We might want to remove this since it may not really be needed - CJ.
   async getStockByLotId(lotId: string) {
     logger.info(`Fetching stock for lot ID: ${lotId}`);
     
@@ -236,7 +174,7 @@ export const inventoryApi = {
    * Apply a correction to item stock by inserting into corrections table.
    * The trigger will set item_qty_before and update item_stocks.
    */
-  async updateStocks(lotId: string, userId: string, itemQtyAfter: number) {
+  async correctStocks(lotId: string, userId: string, itemQtyAfter: number) {
     logger.info(`Applying correction for lot ${lotId} by user ${userId} to new quantity ${itemQtyAfter}`);
 
     // Validate userId exists
