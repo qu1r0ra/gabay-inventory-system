@@ -7,7 +7,6 @@ export interface CreateItemRequest {
     lotId: string;
     quantity: number;
     expiryDate?: string;
-    lotId: string;
     userId: string;
   };
 }
@@ -446,7 +445,7 @@ export const inventoryApi = {
    */
   async getNotificationsByType(type: 'LOW_STOCK' | 'NEAR_EXPIRY' | 'EXPIRED') {
     logger.info(`Fetching notifications of type: ${type}`);
-    
+
     const { data, error } = await supabase
       .from('notifications')
       .select(`
@@ -474,10 +473,10 @@ export const inventoryApi = {
    */
   async getRecentNotifications(days: number = 30) {
     logger.info(`Fetching notifications from last ${days} days`);
-    
+
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    
+
     const { data, error } = await supabase
       .from('notifications')
       .select(`
@@ -495,7 +494,7 @@ export const inventoryApi = {
       logger.error(`Failed to fetch recent notifications: ${error.message}`);
       throw error;
     }
-    
+
     logger.success(`Fetched ${data?.length || 0} recent notifications`);
     return data;
   },
@@ -506,7 +505,7 @@ export const inventoryApi = {
  */
   async getItemsByLotIds(lotIds: string[]) {
     logger.info(`Fetching detailed item information for ${lotIds.length} lot IDs`);
-    
+
     if (!lotIds || lotIds.length === 0) {
       logger.warning('No lot IDs provided');
       return [];
@@ -530,7 +529,7 @@ export const inventoryApi = {
       logger.error(`Failed to fetch items by lot IDs: ${error.message}`);
       throw error;
     }
-    
+
     logger.success(`Fetched ${data?.length || 0} items with detailed information`);
     return data;
   },
