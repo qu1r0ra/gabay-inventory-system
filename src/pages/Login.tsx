@@ -37,7 +37,7 @@ function Login() {
       <div className="flex flex-col items-center justify-center border border-border rounded-lg w-[1000px] h-[600px] shadow-lg">
         <div className="flex items-center justify-center gap-3">
           <img src={logo} alt="Logo" className="w-12 h-12" />
-          <Heading size="xl" className="text-black">Gabay</Heading>
+          <Heading size="xl" className="text-black">GABAY</Heading>
         </div>
 
         <form

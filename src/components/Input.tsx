@@ -32,7 +32,7 @@ const Input: React.FC<InputProps> = ({
       {label && (
         <label
           htmlFor={rest.id}
-          className="text-xs font-medium mb-1 text-gray-700 font-Poppins"
+          className="text-xs font-bold mb-1 text-black font-Work-Sans"
         >
           {label}
         </label>
@@ -42,7 +42,7 @@ const Input: React.FC<InputProps> = ({
         className={`
           w-full h-full px-3 py-2 rounded-md border border-gray-300 shadow-sm 
           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 
-          font-Poppins text-sm ${inputClassName}
+          font-Work-Sans text-sm ${inputClassName}
         `}
       />
     </div>
