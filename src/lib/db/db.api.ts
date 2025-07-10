@@ -3,8 +3,7 @@ import { logger } from "../utils/console.js";
 
 export interface CreateItemRequest {
   name: string;
-  initialStock: {
-    lotId: string;
+  initialStock?: {
     quantity: number;
     expiryDate?: string;
     lotId: string;
@@ -24,8 +23,8 @@ export interface StockUpdateRequest {
 
 export const inventoryApi = {
   async createItem(data: CreateItemRequest) {
-    logger.info(`Creating item: ${data}`);
-
+    logger.info(`Creating item: ${data.name}`);
+    
     const { data: item, error: itemError } = await supabase
       .from("items")
       .insert({ name: data.name })
@@ -50,14 +49,12 @@ export const inventoryApi = {
       logger.success(`Initial stock deposited successfully`);
     }
 
-    logger.success(`Initial stock added successfully`);
-
     return item;
   },
 
   async getItems() {
     logger.info('Fetching all items with stock information');
-
+    
     const { data, error } = await supabase
       .from("items")
       .select(`
@@ -78,14 +75,14 @@ export const inventoryApi = {
       logger.error(`Failed to fetch items: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Fetched ${data?.length || 0} items`);
     return data;
   },
 
   async getItem(id: string) {
     logger.info(`Fetching item with ID: ${id}`);
-
+    
     const { data, error } = await supabase
       .from("items")
       .select(`
@@ -107,14 +104,14 @@ export const inventoryApi = {
       logger.error(`Failed to fetch item ${id}: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Fetched item: ${data.name}`);
     return data;
   },
 
   async updateItem(id: string, data: UpdateItemRequest) {
     logger.info(`Updating item with ID: ${id}`);
-
+    
     if (data.name) {
       const { error: itemError } = await supabase
         .from("items")
@@ -128,7 +125,7 @@ export const inventoryApi = {
         logger.error(`Failed to update item name: ${itemError.message}`);
         throw itemError;
       }
-
+      
       logger.success(`Item name updated to: ${data.name}`);
     }
 
@@ -137,22 +134,22 @@ export const inventoryApi = {
 
   async deleteItem(id: string) {
     logger.info(`Deleting item with ID: ${id}`);
-
+    
     const { error } = await supabase.from("items").delete().eq("id", id);
 
     if (error) {
       logger.error(`Failed to delete item: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Item deleted successfully`);
     return true;
   },
 
-  // TODO: We might want to remove this since it may not really be needed - CJ.
+  // TODO: We might want to remove this since it may not really be needed (probably deprecated) - CJ.
   async getStockByLotId(lotId: string) {
     logger.info(`Fetching stock for lot ID: ${lotId}`);
-
+    
     const { data, error } = await supabase
       .from("item_stocks")
       .select(`
@@ -168,7 +165,7 @@ export const inventoryApi = {
       logger.error(`Failed to fetch stock for lot ${lotId}: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Fetched stock: ${data.item_qty} units of ${data.items?.name}`);
     return data;
   },
@@ -383,7 +380,7 @@ export const inventoryApi = {
     type?: 'weekly' | 'monthly';
   }) {
     logger.info(`Generating report from ${filters.startDate} to ${filters.endDate}`);
-
+    
     const { data, error } = await supabase
       .from('transactions')
       .select(`
@@ -409,7 +406,7 @@ export const inventoryApi = {
       logger.error(`Failed to generate report: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Report generated with ${data?.length || 0} transactions`);
     return data;
   },
@@ -419,7 +416,7 @@ export const inventoryApi = {
    */
   async getNotifications() {
     logger.info('Fetching all notifications');
-
+    
     const { data, error } = await supabase
       .from('notifications')
       .select(`
@@ -436,8 +433,8 @@ export const inventoryApi = {
       logger.error(`Failed to fetch notifications: ${error.message}`);
       throw error;
     }
-
-    logger.success(`Found ${data?.length || 0} items with low stock`);
+    
+    logger.success(`Fetched ${data?.length || 0} notifications`);
     return data;
   },
 
@@ -464,8 +461,8 @@ export const inventoryApi = {
       logger.error(`Failed to fetch ${type} notifications: ${error.message}`);
       throw error;
     }
-
-    logger.success(`Found ${data?.length || 0} items expiring soon`);
+    
+    logger.success(`Fetched ${data?.length || 0} ${type} notifications`);
     return data;
   },
 
