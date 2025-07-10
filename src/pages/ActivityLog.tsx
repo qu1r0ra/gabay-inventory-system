@@ -1,80 +1,148 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import ActivityLogTable from "../components/ActivityLogTable";
+import { useSearch } from "../contexts/SearchContext";
 import Button from "../components/Button";
 
 const columns = [
-  { key: "icon", label: "ICON" },
-  { key: "name", label: "NAME" },
-  { key: "item", label: "ITEM" },
-  { key: "date", label: "DATE" },
-  { key: "time", label: "TIME" },
-  { key: "action", label: "ACTION" },
+  { key: "actor", label: "User Name" },
+  { key: "item", label: "Item Name" },
+  { key: "lotId", label: "Lot ID" },
+  { key: "date", label: "Date" },
+  { key: "time", label: "Time" },
+  { key: "type", label: "Action" },
 ];
 
-const initialData = [
-  { icon: "", name: "John Doe", item: "Canned Beans", date: "2025-06-17", time: "10:24 AM", action: "Add 2" },
-  { icon: "", name: "Jane Smith", item: "Rice Sack", date: "2025-06-16", time: "03:45 PM", action: "Remove 1" },
-  { icon: "", name: "Alex Cruz", item: "Bottled Water", date: "2025-06-15", time: "09:30 AM", action: "Add 5" },
-  { icon: "", name: "Emily Tan", item: "First Aid Kit", date: "2025-06-14", time: "12:10 PM", action: "Remove 3" },
-  { icon: "", name: "Carlos Reyes", item: "Blanket", date: "2025-06-13", time: "08:00 AM", action: "Add 1" },
-  { icon: "", name: "Mia Lopez", item: "Cooking Oil", date: "2025-06-12", time: "02:45 PM", action: "Remove 2" },
-  { icon: "", name: "Liam Santos", item: "Noodles", date: "2025-06-11", time: "11:25 AM", action: "Add 10" },
-  { icon: "", name: "Ava Dela Cruz", item: "Medicine", date: "2025-06-10", time: "04:30 PM", action: "Remove 1" },
-  { icon: "", name: "Noah Garcia", item: "Milk Powder", date: "2025-06-09", time: "07:15 AM", action: "Add 3" },
-  { icon: "", name: "Sophia Ramos", item: "Flashlight", date: "2025-06-08", time: "06:50 PM", action: "Remove 1" },
-  { icon: "", name: "Ethan Navarro", item: "Towels", date: "2025-06-07", time: "09:00 AM", action: "Add 4" },
-  { icon: "", name: "Isla Enriquez", item: "Soap Bars", date: "2025-06-06", time: "03:05 PM", action: "Remove 5" },
-];
+const ROWS_PER_PAGE = 14;
 
 function ActivityLog() {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(1);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const { query } = useSearch();
+  const [rawData, setRawData] = useState<any[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("date_desc");
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
-    const calculateRows = () => {
-      const containerHeight = containerRef.current?.offsetHeight ?? 650;
-      const rowHeight = 50;
-      const theadHeight = 50;
-      const footerPadding = 20;
-      const available = containerHeight - theadHeight - footerPadding;
-      const newRowsPerPage = Math.floor(available / rowHeight) || 1;
-
-      setRowsPerPage(newRowsPerPage);
-
-      const maxPage = Math.max(0, Math.floor((initialData.length - 1) / newRowsPerPage));
-      setCurrentPage(prev => Math.min(prev, maxPage));
+    const generateAction = () => {
+      const formats = [
+        () => `+${Math.floor(Math.random() * 50) + 1}`,
+        () => `-${Math.floor(Math.random() * 50) + 1}`,
+        () => "+",
+        () => "-",
+      ];
+      const randomFormat = formats[Math.floor(Math.random() * formats.length)];
+      return randomFormat();
     };
 
-    calculateRows();
-    window.addEventListener("resize", calculateRows);
-    return () => window.removeEventListener("resize", calculateRows);
+    const dummy = Array.from({ length: 21 }).map((_, idx) => {
+      const dateObj = new Date(2025, 6, (idx % 28) + 1, 9 + (idx % 8), 5 * idx);
+      const iso = dateObj.toISOString();
+      return {
+        actor: `User ${idx + 1}`,
+        item: `Item ${idx + 1}`,
+        lotId: `LOT${1001 + idx}`,
+        date: iso.split("T")[0],
+        time: iso.split("T")[1].slice(0, 5),
+        type: generateAction(),
+      };
+    });
+
+    setRawData(dummy);
   }, []);
 
-  const totalPages = Math.ceil(initialData.length / rowsPerPage);
-  const startIdx = currentPage * rowsPerPage;
-  const endIdx = Math.min(startIdx + rowsPerPage, initialData.length);
-  const visibleData = initialData.slice(startIdx, endIdx);
+  // Filtering, Sorting, Searching
+  const filteredData = rawData
+    .filter((row) => {
+      if (filter === "added") return row.type.startsWith("+");
+      if (filter === "removed") return row.type.startsWith("-");
+      return true;
+    })
+    .filter((row) =>
+      query.trim()
+        ? Object.values(row).join(" ").toLowerCase().includes(query.toLowerCase())
+        : true
+    )
+    .sort((a, b) => {
+      if (sort === "date_asc") return new Date(a.date) > new Date(b.date) ? 1 : -1;
+      if (sort === "date_desc") return new Date(a.date) < new Date(b.date) ? 1 : -1;
+      if (sort === "name") return a.item.localeCompare(b.item);
+      return 0;
+    });
 
-  const hasNext = currentPage < totalPages - 1;
-  const hasPrev = currentPage > 0;
+  const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+  const startIdx = page * ROWS_PER_PAGE;
+  const endIdx = startIdx + ROWS_PER_PAGE;
+  const visibleRows = filteredData.slice(startIdx, endIdx);
+
+  const paddedData =
+    visibleRows.length < ROWS_PER_PAGE
+      ? [
+          ...visibleRows,
+          ...Array.from({ length: ROWS_PER_PAGE - visibleRows.length }).map(() => ({
+            actor: "",
+            item: "",
+            lotId: "",
+            date: "",
+            time: "",
+            type: "",
+          })),
+        ]
+      : visibleRows;
 
   return (
-    <div className="flex justify-center min-h-screen p-4 flex-col items-center">
-      <div ref={containerRef} className="w-full max-w-[940px] h-[650px]">
-        <ActivityLogTable columns={columns} data={visibleData} />
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
+      <div className="w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
+        {/* Header with dropdowns */}
+        <div className="h-[70px] bg-primary px-4 py-3 flex justify-between items-center">
+          <div className="flex gap-2" />
+          <div className="flex gap-4">
+            <select
+              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="all">All</option>
+              <option value="added">Added (+)</option>
+              <option value="removed">Removed (-)</option>
+            </select>
+            <select
+              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="date_desc">Date: Newest First</option>
+              <option value="date_asc">Date: Oldest First</option>
+              <option value="name">Item Name: A-Z</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Table */}
+        <ActivityLogTable columns={columns} data={paddedData} />
       </div>
 
-      <div className="flex justify-center items-center gap-12 mt-4">
-        <Button size="sm" disabled={!hasPrev} onClick={() => setCurrentPage((p) => Math.max(p - 1, 0))}>
-          BACK
-        </Button>
-        <span className="text-primary text-sm font-semibold font-Work-Sans">
-            {currentPage + 1} of {totalPages}
+      {/* Pagination */}
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex gap-6">
+          <Button size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))}>
+            Back
+          </Button>
+          <Button
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+          >
+            Next
+          </Button>
+        </div>
+        <span className="text-sm text-black font-Work-Sans">
+          Page {page + 1} of {totalPages || 1}
         </span>
-        <Button size="sm" disabled={!hasNext} onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages - 1))}>
-          NEXT
-        </Button>
       </div>
     </div>
   );
