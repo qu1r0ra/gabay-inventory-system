@@ -39,7 +39,6 @@ function ActivityLogTable({ columns, data }: TableProps) {
             ))}
           </tr>
         </thead>
-
         {/* Table Body */}
         <tbody>
           {data.map((row, idx) => {
