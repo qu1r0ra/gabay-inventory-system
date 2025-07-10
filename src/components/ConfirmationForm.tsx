@@ -38,7 +38,7 @@ function ConfirmationForm() {
                   <Heading level={3} size="md" className="font-Work-Sans mb-1">
                     Item {i + 1}
                   </Heading>
-                  <div className="text-sm text-gray-700 font-Work-Sans flex gap-6">
+                  <div className="text-sm text-black font-Work-Sans flex gap-6">
                     <span className="w-[130px]">Exp: 2025-08-{day}</span>
                     <span className="w-[260px]">ID: {lotId}</span>
                     <span className="w-[80px]">Qty: 30</span>

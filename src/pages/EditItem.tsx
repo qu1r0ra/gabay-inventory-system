@@ -1,8 +1,9 @@
+import ItemForm from "../components/ItemForm";
+
 function EditItem() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-color-main">
-      <h1 className="text-2xl font-bold text-color-primary mb-4">Edit Item</h1>
-      <p className="text-gray-600">This page is under construction.</p>
+     <div className="flex justify-center min-h-screen flex-col items-center">
+      <ItemForm mode="edit" />
     </div>
   );
 }
