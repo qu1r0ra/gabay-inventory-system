@@ -1,77 +1,61 @@
-
+import { useState } from "react";
 import { Heading } from "./Heading";
+import NumberStepper from "./NumberStepper";
 import Button from "./Button";
 
-
-interface Item {
-  id: string;
-  name: string;
-  expiration: string;
-  quantity: number;
-  imageUrl?: string;
-}
-
-interface ConfirmItemsProps {
-  items?: Item[];
-}
-
-const ConfirmItems: React.FC<ConfirmItemsProps> = ({ items = [] }) => {
-
-
+function ConfirmationForm() {
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      
-      <div className="bg-white border border-gray-300 flex flex-col h-150">
-        
-        <div className="bg-primary text-white text-center py-4 flex-shrink-0">
-          <h1 className="text-2xl font-semibold">Confirm Items</h1>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto">
-          <div className="divide-y divide-gray-800">
-            {items.map((item) => (
-              <div key={item.id} className="flex items-center p-4 bg-red-50">
-                <div className="w-16 h-16 bg-white border border-gray-300 flex items-center justify-center mr-4 flex-shrink-0">
-                  {item.imageUrl ? (
-                    <img 
-                      src={item.imageUrl} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100"></div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">
-                    {item.name}
-                  </h3>
-                  <p className="text-sm text-gray-700">
-                    Expiration: {item.expiration || ''}
-                  </p>
-                </div>                                
-                <div className="text-right ml-4">
-                  <p className="text-sm font-medium text-gray-900">
-                    Total Qty: {item.quantity}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="w-[900px] h-[650px] bg-white border border-black/70 rounded-lg overflow-hidden flex flex-col">
+      {/* Header with heading and buttons */}
+      <div className="bg-primary px-6 py-4 shrink-0 flex items-center justify-between">
+        <Heading level={3} size="sm" className="text-white">
+          Confirmation
+        </Heading>
+        <div className="flex gap-2">
+          <Button size="xs">
+            Remove
+          </Button>
+          <Button size="xs">
+            Confirm
+          </Button>
         </div>
       </div>
-      <div className="mt-8 flex gap-12 justify-center">
-        <Button size="sm">
-          GO BACK
-        </Button>
-        <Button size="sm">
-          CONFIRM
-        </Button>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        {[...Array(9)].map((_, i) => {
+          const day = String((i % 28) + 1).padStart(2, "0");
+          const lotId = `Location-202507${day}-Batch${(i % 5) + 1}`;
+          return (
+            <div
+              key={i}
+              className="w-full h-24 bg-white border-t border-border flex items-center px-4 justify-between"
+            >
+              {/* Left side: checkbox + item info */}
+              <div className="flex items-start gap-4">
+                <input type="checkbox" className="w-5 h-5 mt-1 accent-primary" />
+                <div className="flex flex-col">
+                  <Heading level={3} size="md" className="font-Work-Sans mb-1">
+                    Item {i + 1}
+                  </Heading>
+                  <div className="text-sm text-gray-700 font-Work-Sans flex gap-6">
+                    <span className="w-[130px]">Exp: 2025-08-{day}</span>
+                    <span className="w-[260px]">ID: {lotId}</span>
+                    <span className="w-[80px]">Qty: 30</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side: stepper */}
+              <div className="ml-6">
+                <NumberStepper initial={1} min={1} max={99} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-};
+}
 
-export default ConfirmItems;
-
-
+export default ConfirmationForm;
