@@ -4,6 +4,7 @@ import { logger } from "../utils/console.js";
 export interface CreateItemRequest {
   name: string;
   initialStock?: {
+    lotId: string;
     quantity: number;
     expiryDate?: string;
     userId: string;
@@ -248,9 +249,9 @@ export const inventoryApi = {
     lotId: string,
     userId: string,
     quantity: number,
-    type: 'DEPOSIT' | 'DISTRIBUTE' | 'DISPOSE'
+    type: 'DEPOSIT' | 'DISTRIBUTE' | 'DISPOSE' | 'DELETE'
   }) {
-    logger.info(`Creating ${type} transaction for lot ${lotId} by user ${userId} with quantity ${quantity}`);
+    logger.info(`Creating ${type} transaction for lot ${lotId} by user ${userId}${type !== 'DELETE' ? ` with quantity ${quantity}` : ''}`);
 
     // Validate userId exists
     const { data: user, error: userError } = await supabase
@@ -284,6 +285,8 @@ export const inventoryApi = {
         throw new Error(`Insufficient stock: cannot subtract ${quantity} from ${currentStock.item_qty}`);
       }
       quantityChange = -quantity;
+    } else if (type === 'DELETE') {
+      quantityChange = 0;
     } else {
       throw new Error(`Invalid transaction type: ${type}`);
     }
