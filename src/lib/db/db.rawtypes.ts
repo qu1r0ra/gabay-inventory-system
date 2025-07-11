@@ -60,6 +60,7 @@ export type Database = {
         Row: {
           created_at: string
           expiry_date: string | null
+          is_deleted: boolean | null
           item_id: string
           item_qty: number
           lot_id: string
@@ -68,6 +69,7 @@ export type Database = {
         Insert: {
           created_at?: string
           expiry_date?: string | null
+          is_deleted?: boolean | null
           item_id: string
           item_qty: number
           lot_id: string
@@ -76,6 +78,7 @@ export type Database = {
         Update: {
           created_at?: string
           expiry_date?: string | null
+          is_deleted?: boolean | null
           item_id?: string
           item_qty?: number
           lot_id?: string
@@ -228,7 +231,7 @@ export type Database = {
     }
     Enums: {
       notification_type: "LOW_STOCK" | "NEAR_EXPIRY" | "EXPIRED"
-      transaction_type: "DEPOSIT" | "DISTRIBUTE" | "DISPOSE"
+      transaction_type: "DEPOSIT" | "DISTRIBUTE" | "DISPOSE" | "DELETE"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -357,7 +360,7 @@ export const Constants = {
   public: {
     Enums: {
       notification_type: ["LOW_STOCK", "NEAR_EXPIRY", "EXPIRED"],
-      transaction_type: ["DEPOSIT", "DISTRIBUTE", "DISPOSE"],
+      transaction_type: ["DEPOSIT", "DISTRIBUTE", "DISPOSE", "DELETE"],
     },
   },
 } as const
