@@ -7,6 +7,7 @@ export interface CreateItemRequest {
     quantity: number;
     expiryDate?: string;
     userId: string;
+    lotId: string;
   };
 }
 
@@ -22,34 +23,53 @@ export interface StockUpdateRequest {
 
 export const inventoryApi = {
   async createItem(data: CreateItemRequest) {
-    logger.info(`Creating item: ${data.name}`);
-    
-    const { data: item, error: itemError } = await supabase
-      .from("items")
-      .insert({ name: data.name })
-      .select()
-      .single();
+  logger.info(`Creating item: ${data.name}`);
+  
+  const { data: item, error: itemError } = await supabase
+    .from("items")
+    .insert({ name: data.name })
+    .select()
+    .single();
 
-    if (itemError) {
-      logger.error(`Failed to create item: ${itemError.message}`);
-      throw itemError;
-    }
+  if (itemError) {
+    logger.error(`Failed to create item: ${itemError.message}`);
+    throw itemError;
+  }
 
-    logger.success(`Item created with ID: ${item.id}`);
+  logger.success(`Item created with ID: ${item.id}`);
 
-    if (data.initialStock) {
-      logger.info(`Depositing initial stock: ${data.initialStock.quantity} units`);
-      await inventoryApi.createTransaction({
-        lotId: data.initialStock.lotId,
-        userId: data.initialStock.userId,
-        quantity: data.initialStock.quantity,
-        type: 'DEPOSIT'
+  if (data.initialStock) {
+    logger.info(`Creating new lot ${data.initialStock.lotId} for item ${item.name}`);
+
+    const { error: stockError } = await supabase
+      .from("item_stocks")
+      .insert({
+        item_id: item.id,
+        lot_id: data.initialStock.lotId,
+        item_qty: 0,
+        expiry_date: data.initialStock.expiryDate || null,
       });
-      logger.success(`Initial stock deposited successfully`);
+
+    if (stockError) {
+      logger.error(`Failed to create item_stocks row: ${stockError.message}`);
+      throw stockError;
     }
 
-    return item;
-  },
+    logger.success(`Lot created; depositing initial stock: ${data.initialStock.quantity} units`);
+
+    await inventoryApi.createTransaction({
+      lotId: data.initialStock.lotId,
+      userId: data.initialStock.userId,
+      quantity: data.initialStock.quantity,
+      type: "DEPOSIT"
+    });
+
+    logger.success(`Initial stock deposited successfully`);
+  }
+
+  return item;
+},
+
 
   async getItems() {
     logger.info('Fetching all items with stock information');
