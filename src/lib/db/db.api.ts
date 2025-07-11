@@ -21,6 +21,22 @@ export interface StockUpdateRequest {
   userId: string;
 }
 
+export type StockFilter = "all" | "deleted" | "active";
+
+export type NotificationType = "LOW_STOCK" | "NEAR_EXPIRY" | "EXPIRED";
+
+export interface NotificationFilter {
+  type?: NotificationType;
+  days?: number;
+}
+
+export interface ItemStocksStatusOptions {
+  lowStockThreshold?: number;
+  nearExpiryDays?: number;
+  expired?: boolean;
+  filter?: StockFilter;
+}
+
 export const inventoryApi = {
   async createItem(data: CreateItemRequest) {
     logger.info(`Creating item: ${data.name}`);
@@ -52,9 +68,8 @@ export const inventoryApi = {
     return item;
   },
 
-  async getItems() {
+  async getItems(filter: StockFilter = "active") {
     logger.info('Fetching all items with stock information');
-    
     const { data, error } = await supabase
       .from("items")
       .select(`
@@ -66,23 +81,37 @@ export const inventoryApi = {
           lot_id,
           item_qty,
           expiry_date,
-          updated_at
+          updated_at,
+          is_deleted
         )
       `)
       .order("name");
-
     if (error) {
       logger.error(`Failed to fetch items: ${error.message}`);
       throw error;
     }
-    
-    logger.success(`Fetched ${data?.length || 0} items`);
-    return data;
+    if (!data) {
+      logger.success(`Fetched 0 items`);
+      return [];
+    }
+    let filteredData = data;
+    if (filter === "deleted") {
+      filteredData = data.map(item => ({
+        ...item,
+        item_stocks: item.item_stocks?.filter((lot: any) => lot.is_deleted) || []
+      }));
+    } else if (filter === "active") {
+      filteredData = data.map(item => ({
+        ...item,
+        item_stocks: item.item_stocks?.filter((lot: any) => !lot.is_deleted) || []
+      }));
+    }
+    logger.success(`Fetched ${filteredData.length} items`);
+    return filteredData;
   },
 
-  async getItem(id: string) {
+  async getItem(id: string, filter: StockFilter = "active") {
     logger.info(`Fetching item with ID: ${id}`);
-    
     const { data, error } = await supabase
       .from("items")
       .select(`
@@ -94,19 +123,28 @@ export const inventoryApi = {
           lot_id,
           item_qty,
           expiry_date,
-          updated_at
+          updated_at,
+          is_deleted
         )
       `)
       .eq("id", id)
       .single();
-
     if (error) {
       logger.error(`Failed to fetch item ${id}: ${error.message}`);
       throw error;
     }
-    
+    if (!data) {
+      logger.success(`Fetched 0 items`);
+      return null;
+    }
+    let filteredData = { ...data };
+    if (filter === "deleted") {
+      filteredData.item_stocks = data.item_stocks?.filter((lot: any) => lot.is_deleted) || [];
+    } else if (filter === "active") {
+      filteredData.item_stocks = data.item_stocks?.filter((lot: any) => !lot.is_deleted) || [];
+    }
     logger.success(`Fetched item: ${data.name}`);
-    return data;
+    return filteredData;
   },
 
   async updateItem(id: string, data: UpdateItemRequest) {
@@ -146,34 +184,6 @@ export const inventoryApi = {
     return true;
   },
 
-  // TODO: We might want to remove this since it may not really be needed (probably deprecated) - CJ.
-  async getStockByLotId(lotId: string) {
-    logger.info(`Fetching stock for lot ID: ${lotId}`);
-    
-    const { data, error } = await supabase
-      .from("item_stocks")
-      .select(`
-        *,
-        items (
-          name
-        )
-      `)
-      .eq("lot_id", lotId)
-      .single();
-
-    if (error) {
-      logger.error(`Failed to fetch stock for lot ${lotId}: ${error.message}`);
-      throw error;
-    }
-    
-    logger.success(`Fetched stock: ${data.item_qty} units of ${data.items?.name}`);
-    return data;
-  },
-
-  /**
-   * Apply a correction to item stock by inserting into corrections table.
-   * The trigger will set item_qty_before and update item_stocks.
-   */
   async correctStocks(lotId: string, userId: string, itemQtyAfter: number) {
     logger.info(`Applying correction for lot ${lotId} by user ${userId} to new quantity ${itemQtyAfter}`);
 
@@ -217,9 +227,6 @@ export const inventoryApi = {
     return true;
   },
 
-  /**
-   * Create a transaction and rely on trigger to update stock.
-   */
   async createTransaction({
     lotId,
     userId,
@@ -308,6 +315,43 @@ export const inventoryApi = {
       transaction,
       updatedStock,
     };
+  },
+
+  async getItemStocksStatus(options: ItemStocksStatusOptions = {}) {
+    logger.info(`Fetching item stocks status with options: ${JSON.stringify(options)}`);
+    let query = supabase
+      .from('item_stocks')
+      .select(`*, items ( name )`)
+      .order('expiry_date', { ascending: true });
+    if (options.filter === "deleted") {
+      query = query.eq('is_deleted', true);
+    } else if (options.filter === "active" || !options.filter) {
+      query = query.eq('is_deleted', false);
+    }
+    if (typeof options.lowStockThreshold === 'number') {
+      query = query.lte('item_qty', options.lowStockThreshold);
+    }
+    if (typeof options.nearExpiryDays === 'number') {
+      const today = new Date();
+      const future = new Date(today.getTime() + options.nearExpiryDays * 24 * 60 * 60 * 1000);
+      const todayStr = today.toISOString().slice(0, 10);
+      const futureStr = future.toISOString().slice(0, 10);
+      query = query.not('expiry_date', 'is', null)
+                   .gte('expiry_date', todayStr)
+                   .lte('expiry_date', futureStr);
+    }
+    if (options.expired) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      query = query.not('expiry_date', 'is', null)
+                   .lt('expiry_date', todayStr);
+    }
+    const { data, error } = await query;
+    if (error) {
+      logger.error(`Failed to fetch item stocks status: ${error.message}`);
+      throw error;
+    }
+    logger.success(`Fetched ${data?.length || 0} item stocks status entries`);
+    return data;
   },
 
   /**
@@ -413,13 +457,9 @@ export const inventoryApi = {
     return data;
   },
 
-  /**
-   * Get all notifications with item details, ordered by most recent first.
-   */
-  async getNotifications() {
-    logger.info('Fetching all notifications');
-    
-    const { data, error } = await supabase
+  async getNotifications(filter: NotificationFilter = {}) {
+    logger.info(`Fetching notifications with filter: ${JSON.stringify(filter)}`);
+    let query = supabase
       .from('notifications')
       .select(`
         *,
@@ -430,7 +470,15 @@ export const inventoryApi = {
         )
       `)
       .order('created_at', { ascending: false });
-
+    if (filter.type) {
+      query = query.eq('type', filter.type);
+    }
+    if (filter.days !== undefined) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filter.days);
+      query = query.gte('created_at', cutoffDate.toISOString());
+    }
+    const { data, error } = await query;
     if (error) {
       logger.error(`Failed to fetch notifications: ${error.message}`);
       throw error;
@@ -503,7 +551,7 @@ export const inventoryApi = {
  * Get detailed item information for a list of lot IDs.
  * Useful for displaying detailed information when users click on notifications.
  */
-  async getItemsByLotIds(lotIds: string[]) {
+  async getItemsByLotIds(lotIds: string[], filter: StockFilter = "active") {
     logger.info(`Fetching detailed item information for ${lotIds.length} lot IDs`);
 
     if (!lotIds || lotIds.length === 0) {
@@ -511,7 +559,7 @@ export const inventoryApi = {
       return [];
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('item_stocks')
       .select(`
         *,
@@ -524,6 +572,12 @@ export const inventoryApi = {
       `)
       .in('lot_id', lotIds)
       .order('items(name)', { ascending: true });
+    if (filter === "deleted") {
+      query = query.eq('is_deleted', true);
+    } else if (filter === "active") {
+      query = query.eq('is_deleted', false);
+    }
+    const { data, error } = await query;
 
     if (error) {
       logger.error(`Failed to fetch items by lot IDs: ${error.message}`);
