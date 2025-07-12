@@ -8,7 +8,6 @@ export interface CreateItemRequest {
     quantity: number;
     expiryDate?: string;
     userId: string;
-    lotId: string;
   };
 }
 
@@ -190,6 +189,80 @@ export const inventoryApi = {
     return this.getItem(id);
   },
 
+  async updateLotId({ oldLotId, newLotId }: { oldLotId: string; newLotId: string }) {
+    logger.info(`Updating lot ID from ${oldLotId} to ${newLotId}`);
+
+    const { error } = await supabase
+      .from("item_stocks")
+      .update({ lot_id: newLotId })
+      .eq("lot_id", oldLotId);
+
+    if (error) {
+      logger.error(`Failed to update lot ID: ${error.message}`);
+      throw error;
+    }
+
+    logger.success(`Lot ID successfully updated to: ${newLotId}`);
+    return true;
+  },
+
+  async updateItemStockDetails({
+    itemId,
+    oldLotId,
+    newItemName,
+    newLotId,
+    quantity,
+    expiryDate,
+    userId
+  }: {
+    itemId: string;
+    oldLotId: string;
+    newItemName?: string;
+    newLotId?: string;
+    quantity?: number;
+    expiryDate?: string;
+    userId: string;
+  }) {
+    logger.info(`Updating item stock details for item ${itemId}, lot ${oldLotId}`);
+
+    const updates: any = {};
+    let finalLotId = oldLotId;
+
+    // Rename item
+    if (newItemName) {
+      await inventoryApi.updateItem(itemId, { name: newItemName });
+    }
+
+    // Rename lot ID
+    if (newLotId && newLotId !== oldLotId) {
+    await inventoryApi.updateLotId({ oldLotId, newLotId }); // pass as object
+    finalLotId = newLotId;
+    }
+
+    // Update expiration date
+    if (expiryDate) {
+      updates.expiry_date = expiryDate;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase
+        .from("item_stocks")
+        .update(updates)
+        .eq("lot_id", finalLotId);
+      if (error) throw new Error("Failed to update lot fields.");
+    }
+
+    // Update quantity (optional, via corrections)
+    if (typeof quantity === "number") {
+      await inventoryApi.correctStocks(finalLotId, userId, quantity);
+    }
+
+    logger.success(`Item stock details updated successfully`);
+    return true;
+  },
+
+
+
   async deleteItem(id: string) {
     logger.info(`Deleting item with ID: ${id}`);
     
@@ -201,6 +274,76 @@ export const inventoryApi = {
     }
     
     logger.success(`Item deleted successfully`);
+    return true;
+  },
+
+  async createItemStockForItem({
+  itemId,
+  lotId,
+  expiryDate,
+  userId,
+  quantity,
+}: {
+  itemId: string;
+  lotId: string;
+  expiryDate?: string;
+  userId: string;
+  quantity: number;
+}) {
+  logger.info(`Creating new lot ${lotId} for item ID ${itemId}`);
+
+  const { error: stockError } = await supabase.from("item_stocks").insert({
+    item_id: itemId,
+    lot_id: lotId,
+    item_qty: 0,
+    expiry_date: expiryDate || null,
+  });
+
+  if (stockError) {
+    logger.error(`Failed to create item stock: ${stockError.message}`);
+    throw stockError;
+  }
+
+  logger.success(`Lot created. Depositing ${quantity} units via transaction`);
+
+  await inventoryApi.createTransaction({
+    lotId,
+    userId,
+    quantity,
+    type: "DEPOSIT",
+  });
+
+  logger.success(`Deposit transaction complete for lot ${lotId}`);
+
+  return true;
+},
+
+
+  async deleteItemStock({ lotId, userId }: { lotId: string; userId: string }) {
+    logger.info(`Soft-deleting item stock with lot ID: ${lotId} by user ${userId}`);
+
+    // Soft delete the lot
+    const { error: deleteError } = await supabase
+      .from("item_stocks")
+      .update({ is_deleted: true })
+      .eq("lot_id", lotId);
+
+    if (deleteError) {
+      logger.error(`Failed to soft delete item stock: ${deleteError.message}`);
+      throw deleteError;
+    }
+
+    logger.success(`Item stock marked as deleted`);
+
+    // Log the deletion via a transaction
+    await inventoryApi.createTransaction({
+      lotId,
+      userId,
+      quantity: 0,
+      type: "DELETE",
+    });
+
+    logger.success(`DELETE transaction logged successfully`);
     return true;
   },
 
