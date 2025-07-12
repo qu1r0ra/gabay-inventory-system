@@ -48,7 +48,8 @@ export const AuthContextProvider = ({
       data: { user },
     } = await supabase.auth.getUser();
     setUser(user);
-    console.log("[AUTH]: updated user.");
+    console.log(user);
+    console.log(`[AUTH]: updated user: ${user}`);
     setLoading(false);
   };
 
@@ -63,7 +64,7 @@ export const AuthContextProvider = ({
   const register = async (
     username: string,
     password: string,
-    is_admin: false
+    is_admin: boolean = false
   ) => {
     // Just generate a placeholder email because supabase wants an email
     const email = `${username}@gabay.org`;
@@ -104,10 +105,12 @@ export const AuthContextProvider = ({
     const email = `${username}@gabay.org`;
 
     // Supabase automatically checks password
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, ...rest } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    console.log('rest', rest)
 
     // Something went wrong
     if (error) {
