@@ -131,7 +131,6 @@ function ItemForm({ mode }: ItemFormProps) {
 
       if (isAdd) {
         await fetchAndSyncItems();
-
         if (!form.item || !form.lotId || !form.quantity) {
           throw new Error("Item name, lot ID, and quantity are required.");
         }
@@ -177,6 +176,7 @@ function ItemForm({ mode }: ItemFormProps) {
             message: "Quantity added to existing lot.",
             type: "success",
           });
+          await fetchAndSyncItems();
         }
       } else if (isEdit) {
         if (!form.item || !form.lotId) {
@@ -235,10 +235,8 @@ function ItemForm({ mode }: ItemFormProps) {
         const updatedItemName = newName || form.item;
         const updatedLotId = newLot || form.lotId;
 
-        // ✅ Temporarily disable repopulation
         setSkipRepopulation(true);
 
-        // Update form state to force Select UI sync
         setForm((prev) => ({
           ...prev,
           item: updatedItemName,
@@ -247,11 +245,8 @@ function ItemForm({ mode }: ItemFormProps) {
           newLotId: updatedLotId,
         }));
 
-        // ⚠️ This time, they won’t trigger autofill
         handleItemChange({ value: updatedItemName });
         handleLotChange({ value: updatedLotId });
-
-        // ✅ Now safely clear the form without visual flicker
         resetForm();
         setSkipRepopulation(false);
 
@@ -275,6 +270,7 @@ function ItemForm({ mode }: ItemFormProps) {
         });
       }
 
+      await fetchAndSyncItems();
       resetForm();
     } catch (err: any) {
       setToast({
