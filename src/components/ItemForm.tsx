@@ -43,8 +43,12 @@ function ItemForm({ mode }: ItemFormProps) {
 
   const fetchAndSyncItems = async () => {
     const data = await inventoryApi.getItems();
-    setAllItems(data);
-    const names = [...new Set(data.map((item: any) => item.name))];
+
+    const cleaned = data.filter((item: any) => item.item_stocks?.length > 0);
+
+    setAllItems(cleaned);
+
+    const names = [...new Set(cleaned.map((item: any) => item.name))];
     setItemOptions(names.map((name) => ({ value: name, label: name })));
   };
 
@@ -126,6 +130,8 @@ function ItemForm({ mode }: ItemFormProps) {
       if (!user?.id) throw new Error("User not logged in.");
 
       if (isAdd) {
+        await fetchAndSyncItems();
+
         if (!form.item || !form.lotId || !form.quantity) {
           throw new Error("Item name, lot ID, and quantity are required.");
         }
