@@ -360,7 +360,7 @@ export const inventoryApi = {
     validateString(oldLotId, 'oldLotId');
     if (newItemName !== undefined) validateString(newItemName, 'newItemName', false);
     if (newLotId !== undefined) validateString(newLotId, 'newLotId', false);
-    if (quantity !== undefined) validateNumber(quantity, 'quantity', { min: 0, integer: true }, false);
+    if (quantity !== undefined) validateNumber(quantity, 'quantity', { min: 1, integer: true }, false);
     if (expiryDate !== undefined) validateDate(expiryDate, 'expiryDate', false);
     validateString(userId, 'userId');
     logger.info(
