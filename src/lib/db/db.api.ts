@@ -7,6 +7,88 @@ import {
 } from "./index";
 import { logger } from "../utils/console.js";
 
+export class ApiError extends Error {
+  constructor(message: string, public statusCode: number, public code: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export const handleApiError = (error: unknown) => {
+  if (error instanceof ApiError) throw error;
+
+  logger.error(`API Error: ${error}`);
+  throw new ApiError(
+    "An unexpected error occurred",
+    500,
+    "INTERNAL_SERVER_ERROR"
+  );
+};
+
+// --- Input Validation Helpers ---
+function validateString(value: any, name: string, required = true) {
+  if (required && (typeof value !== 'string' || value.trim() === '')) {
+    throw new ApiError(`${name} must be a non-empty string`, 400, 'BAD_REQUEST');
+  }
+  if (!required && value !== undefined && typeof value !== 'string') {
+    throw new ApiError(`${name} must be a string`, 400, 'BAD_REQUEST');
+  }
+}
+
+function validateNumber(value: any, name: string, opts: { min?: number; max?: number; integer?: boolean } = {}, required = true) {
+  if (required && (typeof value !== 'number' || isNaN(value))) {
+    throw new ApiError(`${name} must be a number`, 400, 'BAD_REQUEST');
+  }
+  if (!required && value !== undefined && (typeof value !== 'number' || isNaN(value))) {
+    throw new ApiError(`${name} must be a number`, 400, 'BAD_REQUEST');
+  }
+  if (opts.integer && value !== undefined && !Number.isInteger(value)) {
+    throw new ApiError(`${name} must be an integer`, 400, 'BAD_REQUEST');
+  }
+  if (opts.min !== undefined && value !== undefined && value < opts.min) {
+    throw new ApiError(`${name} must be >= ${opts.min}`, 400, 'BAD_REQUEST');
+  }
+  if (opts.max !== undefined && value !== undefined && value > opts.max) {
+    throw new ApiError(`${name} must be <= ${opts.max}`, 400, 'BAD_REQUEST');
+  }
+}
+
+function validateEnum<T extends string>(value: any, name: string, allowed: readonly T[], required = true) {
+  if (required && !allowed.includes(value)) {
+    throw new ApiError(`${name} must be one of: ${allowed.join(', ')}`, 400, 'BAD_REQUEST');
+  }
+  if (!required && value !== undefined && !allowed.includes(value)) {
+    throw new ApiError(`${name} must be one of: ${allowed.join(', ')}`, 400, 'BAD_REQUEST');
+  }
+}
+
+function validateDate(value: any, name: string, required = true) {
+  if (required && (typeof value !== 'string' || isNaN(Date.parse(value)))) {
+    throw new ApiError(`${name} must be a valid ISO date string`, 400, 'BAD_REQUEST');
+  }
+  if (!required && value !== undefined && (typeof value !== 'string' || isNaN(Date.parse(value)))) {
+    throw new ApiError(`${name} must be a valid ISO date string`, 400, 'BAD_REQUEST');
+  }
+}
+
+function validateArray(value: any, name: string, opts: { minLength?: number; ofType?: (v: any) => void } = {}, required = true) {
+  if (required && (!Array.isArray(value) || (opts.minLength && value.length < opts.minLength))) {
+    throw new ApiError(`${name} must be an array${opts.minLength ? ` of at least ${opts.minLength} items` : ''}`, 400, 'BAD_REQUEST');
+  }
+  if (!required && value !== undefined && !Array.isArray(value)) {
+    throw new ApiError(`${name} must be an array`, 400, 'BAD_REQUEST');
+  }
+  if (opts.ofType && Array.isArray(value)) {
+    value.forEach((v, i) => {
+      try { opts.ofType(v); } catch (e) { throw new ApiError(`${name}[${i}]: ${(e as Error).message}`, 400, 'BAD_REQUEST'); }
+    });
+  }
+}
+
+const TRANSACTION_TYPES = ["DEPOSIT", "DISTRIBUTE", "DISPOSE", "DELETE"] as const;
+const NOTIFICATION_TYPES = ["LOW_STOCK", "NEAR_EXPIRY", "EXPIRED"] as const;
+const STOCK_FILTERS = ["all", "deleted", "active"] as const;
+
 export interface CreateItemRequest {
   name: string;
   initialStock?: {
@@ -45,6 +127,16 @@ export interface ItemStocksStatusOptions {
 
 export const inventoryApi = {
   async createItem(data: CreateItemRequest) {
+    // Input validation
+    validateString(data.name, 'name');
+    if (data.initialStock) {
+      validateString(data.initialStock.lotId, 'initialStock.lotId');
+      validateNumber(data.initialStock.quantity, 'initialStock.quantity', { min: 1, integer: true }); // must be > 0
+      validateString(data.initialStock.userId, 'initialStock.userId');
+      if (data.initialStock.expiryDate !== undefined) {
+        validateDate(data.initialStock.expiryDate, 'initialStock.expiryDate', false);
+      }
+    }
     logger.info(`Creating item: ${data.name}`);
 
     const { data: item, error: itemError } = await supabase
@@ -95,6 +187,7 @@ export const inventoryApi = {
   },
 
   async getItems(filter: StockFilter = "active") {
+    validateEnum(filter, 'filter', STOCK_FILTERS, false);
     logger.info("Fetching all items with stock information");
     const { data, error } = await supabase
       .from("items")
@@ -126,14 +219,12 @@ export const inventoryApi = {
     if (filter === "deleted") {
       filteredData = data.map((item) => ({
         ...item,
-        item_stocks:
-          item.item_stocks?.filter((lot: any) => lot.is_deleted) || [],
+        item_stocks: Array.isArray(item.item_stocks) ? item.item_stocks.filter((lot: any) => lot.is_deleted) : [],
       }));
     } else if (filter === "active") {
       filteredData = data.map((item) => ({
         ...item,
-        item_stocks:
-          item.item_stocks?.filter((lot: any) => !lot.is_deleted) || [],
+        item_stocks: Array.isArray(item.item_stocks) ? item.item_stocks.filter((lot: any) => !lot.is_deleted) : [],
       }));
     }
     logger.success(`Fetched ${filteredData.length} items`);
@@ -141,6 +232,8 @@ export const inventoryApi = {
   },
 
   async getItem(id: string, filter: StockFilter = "active") {
+    validateString(id, 'id');
+    validateEnum(filter, 'filter', STOCK_FILTERS, false);
     logger.info(`Fetching item with ID: ${id}`);
     const { data, error } = await supabase
       .from("items")
@@ -182,9 +275,26 @@ export const inventoryApi = {
   },
 
   async updateItem(id: string, data: UpdateItemRequest) {
+    validateString(id, 'id');
+    if (data.name !== undefined) validateString(data.name, 'name', false);
     logger.info(`Updating item with ID: ${id}`);
 
     if (data.name) {
+      // Uniqueness check
+      const { data: existing, error: checkError } = await supabase
+        .from("items")
+        .select("id")
+        .eq("name", data.name)
+        .neq("id", id)
+        .maybeSingle();
+      if (checkError) {
+        logger.error(`Error checking for existing item name: ${checkError.message}`);
+        throw checkError;
+      }
+      if (existing) {
+        logger.error(`Item name conflict: ${data.name} already exists`);
+        throw new ApiError(`Item name "${data.name}" already exists.`, 400, "DUPLICATE_ITEM_NAME");
+      }
       const { error: itemError } = await supabase
         .from("items")
         .update({
@@ -211,6 +321,8 @@ export const inventoryApi = {
     oldLotId: string;
     newLotId: string;
   }) {
+    validateString(oldLotId, 'oldLotId');
+    validateString(newLotId, 'newLotId');
     logger.info(`Updating lot ID from ${oldLotId} to ${newLotId}`);
 
     const { error } = await supabase
@@ -244,6 +356,13 @@ export const inventoryApi = {
     expiryDate?: string;
     userId: string;
   }) {
+    validateString(itemId, 'itemId');
+    validateString(oldLotId, 'oldLotId');
+    if (newItemName !== undefined) validateString(newItemName, 'newItemName', false);
+    if (newLotId !== undefined) validateString(newLotId, 'newLotId', false);
+    if (quantity !== undefined) validateNumber(quantity, 'quantity', { min: 0, integer: true }, false);
+    if (expiryDate !== undefined) validateDate(expiryDate, 'expiryDate', false);
+    validateString(userId, 'userId');
     logger.info(
       `Updating item stock details for item ${itemId}, lot ${oldLotId}`
     );
@@ -309,6 +428,7 @@ export const inventoryApi = {
   },
 
   async deleteItem(id: string) {
+    validateString(id, 'id');
     logger.info(`Deleting item with ID: ${id}`);
 
     const { error } = await supabase.from("items").delete().eq("id", id);
@@ -335,6 +455,11 @@ export const inventoryApi = {
     userId: string;
     quantity: number;
   }) {
+    validateString(itemId, 'itemId');
+    validateString(lotId, 'lotId');
+    if (expiryDate !== undefined) validateDate(expiryDate, 'expiryDate', false);
+    validateString(userId, 'userId');
+    validateNumber(quantity, 'quantity', { min: 1, integer: true });
     logger.info(`Creating new lot ${lotId} for item ID ${itemId}`);
 
     const { error: stockError } = await supabase.from("item_stocks").insert({
@@ -364,6 +489,8 @@ export const inventoryApi = {
   },
 
   async deleteItemStock({ lotId, userId }: { lotId: string; userId: string }) {
+    validateString(lotId, 'lotId');
+    validateString(userId, 'userId');
     logger.info(
       `Soft-deleting item stock with lot ID: ${lotId} by user ${userId}`
     );
@@ -394,6 +521,9 @@ export const inventoryApi = {
   },
 
   async correctStocks(lotId: string, userId: string, itemQtyAfter: number) {
+    validateString(lotId, 'lotId');
+    validateString(userId, 'userId');
+    validateNumber(itemQtyAfter, 'itemQtyAfter', { min: 0, integer: true });
     logger.info(
       `Applying correction for lot ${lotId} by user ${userId} to new quantity ${itemQtyAfter}`
     );
@@ -447,6 +577,22 @@ export const inventoryApi = {
     quantity: number;
     type: "DEPOSIT" | "DISTRIBUTE" | "DISPOSE" | "DELETE";
   }) {
+    validateString(lotId, 'lotId');
+    validateString(userId, 'userId');
+    validateEnum(type, 'type', TRANSACTION_TYPES);
+    if (type === "DEPOSIT") {
+      validateNumber(quantity, 'quantity', { min: 1, integer: true });
+      if (quantity <= 0) {
+        throw new ApiError('quantity for DEPOSIT must be > 0', 400, 'BAD_REQUEST');
+      }
+    } else if (["DISTRIBUTE", "DISPOSE"].includes(type)) {
+      validateNumber(quantity, 'quantity', { min: 1, integer: true });
+      if (quantity <= 0) {
+        throw new ApiError(`quantity for ${type} must be > 0`, 400, 'BAD_REQUEST');
+      }
+    } else {
+      validateNumber(quantity, 'quantity', { min: 0, integer: true });
+    }
     logger.info(
       `Creating ${type} transaction for lot ${lotId} by user ${userId}${
         type !== "DELETE" ? ` with quantity ${quantity}` : ""
@@ -535,6 +681,10 @@ export const inventoryApi = {
   },
 
   async getItemStocksStatus(options: ItemStocksStatusOptions = {}) {
+    if (options.filter !== undefined) validateEnum(options.filter, 'filter', STOCK_FILTERS, false);
+    if (options.lowStockThreshold !== undefined) validateNumber(options.lowStockThreshold, 'lowStockThreshold', { min: 0, integer: true }, false);
+    if (options.nearExpiryDays !== undefined) validateNumber(options.nearExpiryDays, 'nearExpiryDays', { min: 0, integer: true }, false);
+    if (options.expired !== undefined && typeof options.expired !== 'boolean') throw new ApiError('expired must be a boolean', 400, 'BAD_REQUEST');
     logger.info(
       `Fetching item stocks status with options: ${JSON.stringify(options)}`
     );
@@ -579,6 +729,7 @@ export const inventoryApi = {
    * Get items with low stock (quantity <= threshold).
    */
   async getLowStockItems(threshold: number = 10) {
+    validateNumber(threshold, 'threshold', { min: 0, integer: true });
     logger.info(`Fetching items with stock <= ${threshold}`);
     const { data, error } = await supabase
       .from("item_stocks")
@@ -599,6 +750,7 @@ export const inventoryApi = {
    * Get items expiring within the next X days (default 30 days).
    */
   async getNearExpiryItems(days: number = 30) {
+    validateNumber(days, 'days', { min: 0, integer: true });
     logger.info(`Fetching items expiring within ${days} days`);
     const today = new Date();
     const future = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
@@ -626,6 +778,7 @@ export const inventoryApi = {
    * Get items that are already expired (expiry_date < today).
    */
   async getExpiredItems() {
+    // No input to validate
     logger.info("Fetching expired items");
     const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -651,6 +804,9 @@ export const inventoryApi = {
     endDate: string;
     type?: "weekly" | "monthly";
   }) {
+    validateDate(filters.startDate, 'startDate');
+    validateDate(filters.endDate, 'endDate');
+    if (filters.type !== undefined) validateEnum(filters.type, 'type', ["weekly", "monthly"], false);
     logger.info(
       `Generating report from ${filters.startDate} to ${filters.endDate}`
     );
@@ -688,6 +844,8 @@ export const inventoryApi = {
   },
 
   async getNotifications(filter: NotificationFilter = {}) {
+    if (filter.type !== undefined) validateEnum(filter.type, 'type', NOTIFICATION_TYPES, false);
+    if (filter.days !== undefined) validateNumber(filter.days, 'days', { min: 0, integer: true }, false);
     logger.info(
       `Fetching notifications with filter: ${JSON.stringify(filter)}`
     );
@@ -726,6 +884,7 @@ export const inventoryApi = {
    * Get notifications by type (LOW_STOCK, NEAR_EXPIRY, EXPIRED).
    */
   async getNotificationsByType(type: "LOW_STOCK" | "NEAR_EXPIRY" | "EXPIRED") {
+    validateEnum(type, 'type', NOTIFICATION_TYPES);
     logger.info(`Fetching notifications of type: ${type}`);
 
     const { data, error } = await supabase
@@ -756,6 +915,7 @@ export const inventoryApi = {
    * Get recent notifications (last 30 days).
    */
   async getRecentNotifications(days: number = 30) {
+    validateNumber(days, 'days', { min: 0, integer: true });
     logger.info(`Fetching notifications from last ${days} days`);
 
     const cutoffDate = new Date();
@@ -824,6 +984,8 @@ export const inventoryApi = {
    * Useful for displaying detailed information when users click on notifications.
    */
   async getItemsByLotIds(lotIds: string[], filter: StockFilter = "active") {
+    validateArray(lotIds, 'lotIds', { minLength: 1, ofType: (v) => validateString(v, 'lotId') });
+    validateEnum(filter, 'filter', STOCK_FILTERS, false);
     logger.info(
       `Fetching detailed item information for ${lotIds.length} lot IDs`
     );
@@ -844,8 +1006,7 @@ export const inventoryApi = {
           created_at,
           updated_at
         )
-      `
-      )
+      `      )
       .in("lot_id", lotIds)
       .order("items(name)", { ascending: true });
     if (filter === "deleted") {
@@ -853,34 +1014,28 @@ export const inventoryApi = {
     } else if (filter === "active") {
       query = query.eq("is_deleted", false);
     }
+
     const { data, error } = await query;
 
     if (error) {
-      logger.error(`Failed to fetch items by lot IDs: ${error.message}`);
+      logger.error(`Failed to fetch detailed item information: ${error.message}`);
       throw error;
     }
 
-    logger.success(
-      `Fetched ${data?.length || 0} items with detailed information`
-    );
-    return data;
+    if (!data) {
+      logger.success(`Fetched 0 detailed item information`);
+      return [];
+    }
+
+    const itemDetails = await Promise.all(data.map(async (stock) => {
+      const item = await inventoryApi.getItem(stock.item_id, filter);
+      return {
+        ...stock,
+        item,
+      };
+    }));
+
+    logger.success(`Fetched ${itemDetails.length} detailed item information`);
+    return itemDetails;
   },
-};
-
-export class ApiError extends Error {
-  constructor(message: string, public statusCode: number, public code: string) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
-
-export const handleApiError = (error: unknown) => {
-  if (error instanceof ApiError) throw error;
-
-  logger.error(`API Error: ${error}`);
-  throw new ApiError(
-    "An unexpected error occurred",
-    500,
-    "INTERNAL_SERVER_ERROR"
-  );
 };
