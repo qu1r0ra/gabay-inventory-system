@@ -22,7 +22,7 @@ function Inventory() {
   const [rawData, setRawData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState("name");
+  const [sort, setSort] = useState("mod_desc");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -30,16 +30,19 @@ function Inventory() {
       try {
         const result = await inventoryApi.getItems();
         const flattened = result.flatMap((item: any) =>
-          item.item_stocks.map((stock: any) => ({
-            name: item.name,
-            lotId: stock.lot_id,
-            qty: stock.item_qty,
-            expDate: stock.expiry_date?.split("T")[0] || "N/A",
-            lastModified: stock.updated_at?.split("T")[0] || "N/A",
-            isLowStock: stock.is_low_stock,
-            isExpiringSoon: stock.is_expiring_soon,
-            action: "",
-          }))
+          item.item_stocks
+            .filter((stock: any) => !stock.is_deleted) // exclude soft-deleted
+            .map((stock: any) => ({
+              name: item.name,
+              lotId: stock.lot_id,
+              qty: stock.item_qty,
+              expDate: stock.expiry_date?.split("T")[0] || "N/A",
+              lastModified: stock.updated_at?.split("T")[0] || "N/A",
+              lastModifiedRaw: stock.updated_at || "", // keep raw datetime for sorting
+              isLowStock: stock.is_low_stock,
+              isExpiringSoon: stock.is_expiring_soon,
+              action: "",
+            }))
         );
         setRawData(flattened);
       } catch (error) {
@@ -60,10 +63,10 @@ function Inventory() {
     } else if (filter === "expiring") {
       result = result.filter((item) => item.isExpiringSoon);
     } else if (filter === "expired") {
+      const today = new Date();
       result = result.filter((item) => {
-        const today = new Date();
         const exp = new Date(item.expDate);
-        return exp < today;
+        return !isNaN(exp.getTime()) && exp < today;
       });
     }
 
@@ -77,17 +80,32 @@ function Inventory() {
 
     // Sort
     result.sort((a, b) => {
+      const dateA = new Date(a.expDate);
+      const dateB = new Date(b.expDate);
+      const modA = new Date(a.lastModifiedRaw);
+      const modB = new Date(b.lastModifiedRaw);
+
       if (sort === "qty_asc") return a.qty - b.qty;
       if (sort === "qty_desc") return b.qty - a.qty;
-      if (sort === "exp_asc") return new Date(a.expDate) > new Date(b.expDate) ? 1 : -1;
-      if (sort === "exp_desc") return new Date(a.expDate) < new Date(b.expDate) ? 1 : -1;
+      if (sort === "exp_asc") {
+        if (a.expDate === "N/A") return 1;
+        if (b.expDate === "N/A") return -1;
+        return dateA > dateB ? 1 : -1;
+      }
+      if (sort === "exp_desc") {
+        if (a.expDate === "N/A") return -1;
+        if (b.expDate === "N/A") return 1;
+        return dateA < dateB ? 1 : -1;
+      }
+      if (sort === "mod_asc") return modA.getTime() - modB.getTime();
+      if (sort === "mod_desc") return modB.getTime() - modA.getTime();
       if (sort === "name") return a.name.localeCompare(b.name);
       return 0;
     });
 
     setFilteredData(result);
-    setPage(0); // reset to first page on change
-  }, [rawData, filter, sort, query]); // <-- make sure query is included here
+    setPage(0);
+  }, [rawData, filter, sort, query]);
 
   const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
   const startIdx = page * ROWS_PER_PAGE;
@@ -111,7 +129,6 @@ function Inventory() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
-      {/* Container */}
       <div className="w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
         {/* Header */}
         <div className="h-[70px] bg-primary px-4 py-3 flex justify-between items-center">
@@ -139,6 +156,8 @@ function Inventory() {
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
+              <option value="mod_desc">Last Modified: Latest First</option>
+              <option value="mod_asc">Last Modified: Oldest First</option>
               <option value="qty_asc">Qty: Low to High</option>
               <option value="qty_desc">Qty: High to Low</option>
               <option value="exp_asc">Expiry: Soonest First</option>
