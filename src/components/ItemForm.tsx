@@ -23,24 +23,33 @@ function ItemForm({ mode }: ItemFormProps) {
     newLotId: "",
   });
 
-  const [itemOptions, setItemOptions] = useState<{ value: string; label: string }[]>([]);
-  const [lotOptions, setLotOptions] = useState<{ value: string; label: string }[]>([]);
+  const [itemOptions, setItemOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [lotOptions, setLotOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [allItems, setAllItems] = useState<any[]>([]);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   const [disableExpDate, setDisableExpDate] = useState(false);
+  const [skipRepopulation, setSkipRepopulation] = useState(false);
 
   const isAdd = mode === "add";
   const isEdit = mode === "edit";
   const isDelete = mode === "delete";
 
+  const fetchAndSyncItems = async () => {
+    const data = await inventoryApi.getItems();
+    setAllItems(data);
+    const names = [...new Set(data.map((item: any) => item.name))];
+    setItemOptions(names.map((name) => ({ value: name, label: name })));
+  };
+
   useEffect(() => {
-    const fetchItems = async () => {
-      const data = await inventoryApi.getItems();
-      setAllItems(data);
-      const names = [...new Set(data.map((item: any) => item.name))];
-      setItemOptions(names.map((name) => ({ value: name, label: name })));
-    };
-    fetchItems();
+    fetchAndSyncItems();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,34 +57,43 @@ function ItemForm({ mode }: ItemFormProps) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
- const handleItemChange = (newValue: any) => {
+  const handleItemChange = (newValue: any) => {
+    if (skipRepopulation) return; // ❌ Skip autofill if flag is active
+
     const name = newValue?.value || "";
+
     setForm((prev) => ({
       ...prev,
       item: name,
       lotId: "",
       quantity: "",
       expDate: "",
-      newItem: name, // autofill new item name
-      newLotId: "",  // clear lot for now
+      newItem: name,
+      newLotId: "",
     }));
     setDisableExpDate(false);
 
-    const matched = allItems.find((i) => i.name === name);
-    if (matched) {
-      const lots = matched.item_stocks?.map((s: any) => s.lot_id);
-      setLotOptions((lots || []).map((lot: string) => ({ value: lot, label: lot })));
-    } else {
-      setLotOptions([]);
-    }
+    const matchedItems = allItems.filter((i) => i.name === name);
+    const combinedLots = matchedItems.flatMap((i) => i.item_stocks || []);
+    const lotIds = [...new Set(combinedLots.map((s) => s.lot_id))];
+
+    setLotOptions(lotIds.map((lot: string) => ({ value: lot, label: lot })));
   };
 
   const handleLotChange = (newValue: any) => {
-    const lot = newValue?.value || "";
-    setForm((prev) => ({ ...prev, lotId: lot, newLotId: lot })); // autofill new lot ID
+    if (skipRepopulation) return;
 
-    const matchedItem = allItems.find((i) => i.name === form.item);
-    const matchedStock = matchedItem?.item_stocks?.find((s: any) => s.lot_id === lot);
+    const lot = newValue?.value || "";
+
+    setForm((prev) => ({
+      ...prev,
+      lotId: lot,
+      newLotId: lot,
+    }));
+
+    const matchedStock = allItems
+      .flatMap((item) => item.item_stocks || [])
+      .find((s: any) => s.lot_id === lot);
 
     if (matchedStock) {
       setForm((prev) => ({
@@ -90,9 +108,15 @@ function ItemForm({ mode }: ItemFormProps) {
     }
   };
 
-
   const resetForm = () => {
-    setForm({ item: "", lotId: "", quantity: "", expDate: "", newItem: "", newLotId: "" });
+    setForm({
+      item: "",
+      lotId: "",
+      quantity: "",
+      expDate: "",
+      newItem: "",
+      newLotId: "",
+    });
     setLotOptions([]);
     setDisableExpDate(false);
   };
@@ -108,7 +132,9 @@ function ItemForm({ mode }: ItemFormProps) {
 
         const isNewItem = !itemOptions.find((opt) => opt.value === form.item);
         const matchedItem = allItems.find((i) => i.name === form.item);
-        const isExistingLot = matchedItem?.item_stocks?.some((s: any) => s.lot_id === form.lotId);
+        const isExistingLot = matchedItem?.item_stocks?.some(
+          (s: any) => s.lot_id === form.lotId
+        );
         const isNewLot = !isExistingLot && !!form.expDate;
 
         if (isNewItem) {
@@ -130,7 +156,10 @@ function ItemForm({ mode }: ItemFormProps) {
             userId: user.id,
             expiryDate: form.expDate || undefined,
           });
-          setToast({ message: "New lot added to existing item.", type: "success" });
+          setToast({
+            message: "New lot added to existing item.",
+            type: "success",
+          });
         } else {
           await inventoryApi.createTransaction({
             lotId: form.lotId,
@@ -138,33 +167,92 @@ function ItemForm({ mode }: ItemFormProps) {
             quantity: Number(form.quantity),
             type: "DEPOSIT",
           });
-          setToast({ message: "Quantity added to existing lot.", type: "success" });
+          setToast({
+            message: "Quantity added to existing lot.",
+            type: "success",
+          });
         }
-
       } else if (isEdit) {
         if (!form.item || !form.lotId) {
           throw new Error("Item and lot ID are required for editing.");
         }
 
-        const matchedItem = allItems.find((i) => i.name === form.item);
-        const matchedStock = matchedItem?.item_stocks?.find((s: any) => s.lot_id === form.lotId);
+        await fetchAndSyncItems(); // Ensure latest data
 
-        if (!matchedItem || !matchedStock) {
+        // Search for the lot across all items
+        const matchedStock = allItems
+          .flatMap((i) =>
+            (i.item_stocks || []).map((s: any) => ({
+              ...s,
+              item_id: i.id,
+              item_name: i.name,
+            }))
+          )
+          .find((s) => s.lot_id === form.lotId && s.item_name === form.item);
+
+        if (!matchedStock) {
           throw new Error("Selected item or lot ID not found.");
+        }
+
+        const matchedItem = allItems.find((i) => i.id === matchedStock.item_id);
+        if (!matchedItem) {
+          throw new Error("Associated item not found.");
+        }
+
+        const newName = form.newItem.trim();
+        const newLot = form.newLotId.trim();
+        const newQty = Number(form.quantity);
+        const newDate = form.expDate;
+
+        const itemNameChanged = newName && newName !== matchedItem.name;
+        const lotIdChanged = newLot && newLot !== matchedStock.lot_id;
+        const qtyChanged = !isNaN(newQty) && newQty !== matchedStock.item_qty;
+        const dateChanged =
+          newDate && newDate !== matchedStock.expiry_date?.split("T")[0];
+
+        if (!itemNameChanged && !lotIdChanged && !qtyChanged && !dateChanged) {
+          throw new Error("No changes detected.");
         }
 
         await inventoryApi.updateItemStockDetails({
           itemId: matchedItem.id,
           oldLotId: matchedStock.lot_id,
-          newItemName: form.newItem.trim() !== matchedItem.name ? form.newItem : undefined,
-          newLotId: form.newLotId.trim() !== matchedStock.lot_id ? form.newLotId : undefined,
-          quantity: Number(form.quantity) !== matchedStock.item_qty ? Number(form.quantity) : undefined,
-          expiryDate: form.expDate !== matchedStock.expiry_date?.split("T")[0] ? form.expDate : undefined,
+          newItemName: itemNameChanged ? newName : undefined,
+          newLotId: lotIdChanged ? newLot : undefined,
+          quantity: qtyChanged ? newQty : undefined,
+          expiryDate: dateChanged ? newDate : undefined,
           userId: user.id,
         });
 
-        setToast({ message: "Item stock edited successfully.", type: "success" });
+        await fetchAndSyncItems();
 
+        const updatedItemName = newName || form.item;
+        const updatedLotId = newLot || form.lotId;
+
+        // ✅ Temporarily disable repopulation
+        setSkipRepopulation(true);
+
+        // Update form state to force Select UI sync
+        setForm((prev) => ({
+          ...prev,
+          item: updatedItemName,
+          lotId: updatedLotId,
+          newItem: updatedItemName,
+          newLotId: updatedLotId,
+        }));
+
+        // ⚠️ This time, they won’t trigger autofill
+        handleItemChange({ value: updatedItemName });
+        handleLotChange({ value: updatedLotId });
+
+        // ✅ Now safely clear the form without visual flicker
+        resetForm();
+        setSkipRepopulation(false);
+
+        setToast({
+          message: "Item stock edited successfully.",
+          type: "success",
+        });
       } else if (isDelete) {
         if (!form.item || !form.lotId) {
           throw new Error("Item and lot ID are required to delete.");
@@ -175,16 +263,20 @@ function ItemForm({ mode }: ItemFormProps) {
           userId: user.id,
         });
 
-        setToast({ message: "Stock entry deleted successfully.", type: "success" });
+        setToast({
+          message: "Stock entry deleted successfully.",
+          type: "success",
+        });
       }
 
       resetForm();
     } catch (err: any) {
-      setToast({ message: err.message || "Something went wrong.", type: "error" });
+      setToast({
+        message: err.message || "Something went wrong.",
+        type: "error",
+      });
     }
   };
-
-
 
   if (isEdit) {
     return (
@@ -195,13 +287,15 @@ function ItemForm({ mode }: ItemFormProps) {
               Edit Item Form
             </Heading>
             <p className="font-Work-Sans text-md text-border">
-              Select an existing item and lot ID to modify existing fields. 
+              Select an existing item and lot ID to modify existing fields.
             </p>
           </div>
 
           <div className="flex flex-col items-center gap-y-8 flex-grow">
             <div className="w-[540px]">
-              <label className="block text-xs font-bold font-Work-Sans text-black mb-1">Item Name</label>
+              <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
+                Item Name
+              </label>
               <Select
                 isClearable
                 name="item"
@@ -210,12 +304,16 @@ function ItemForm({ mode }: ItemFormProps) {
                 className="text-sm"
                 classNamePrefix="select"
                 placeholder="Select an item"
-                value={form.item ? { label: form.item, value: form.item } : null}
+                value={
+                  form.item ? { label: form.item, value: form.item } : null
+                }
               />
             </div>
 
             <div className="w-[540px]">
-              <label className="block text-xs font-bold font-Work-Sans text-black mb-1">Lot ID</label>
+              <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
+                Lot ID
+              </label>
               <Select
                 isClearable
                 name="lotId"
@@ -224,7 +322,9 @@ function ItemForm({ mode }: ItemFormProps) {
                 className="text-sm"
                 classNamePrefix="select"
                 placeholder="Select a lot ID"
-                value={form.lotId ? { label: form.lotId, value: form.lotId } : null}
+                value={
+                  form.lotId ? { label: form.lotId, value: form.lotId } : null
+                }
               />
             </div>
 
@@ -289,7 +389,11 @@ function ItemForm({ mode }: ItemFormProps) {
 
         {toast && (
           <div className="flex justify-center mt-4">
-            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
           </div>
         )}
       </>
@@ -312,7 +416,9 @@ function ItemForm({ mode }: ItemFormProps) {
 
         <div className="flex flex-col items-center gap-y-9 flex-grow">
           <div className="w-[540px]">
-            <label className="block text-xs font-bold font-Work-Sans text-black mb-1">Item Name</label>
+            <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
+              Item Name
+            </label>
             {isAdd ? (
               <CreatableSelect
                 isClearable
@@ -322,7 +428,9 @@ function ItemForm({ mode }: ItemFormProps) {
                 className="text-sm"
                 classNamePrefix="select"
                 placeholder="Select or type a new item"
-                value={form.item ? { label: form.item, value: form.item } : null}
+                value={
+                  form.item ? { label: form.item, value: form.item } : null
+                }
               />
             ) : (
               <Select
@@ -333,13 +441,17 @@ function ItemForm({ mode }: ItemFormProps) {
                 className="text-sm"
                 classNamePrefix="select"
                 placeholder="Select an item"
-                value={form.item ? { label: form.item, value: form.item } : null}
+                value={
+                  form.item ? { label: form.item, value: form.item } : null
+                }
               />
             )}
           </div>
 
           <div className="w-[540px]">
-            <label className="block text-xs font-bold font-Work-Sans text-black mb-1">Lot ID</label>
+            <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
+              Lot ID
+            </label>
             {isAdd ? (
               <CreatableSelect
                 isClearable
@@ -349,7 +461,9 @@ function ItemForm({ mode }: ItemFormProps) {
                 className="text-sm"
                 classNamePrefix="select"
                 placeholder="Select or type a lot ID"
-                value={form.lotId ? { label: form.lotId, value: form.lotId } : null}
+                value={
+                  form.lotId ? { label: form.lotId, value: form.lotId } : null
+                }
               />
             ) : (
               <Select
@@ -360,7 +474,9 @@ function ItemForm({ mode }: ItemFormProps) {
                 className="text-sm"
                 classNamePrefix="select"
                 placeholder="Select a lot ID"
-                value={form.lotId ? { label: form.lotId, value: form.lotId } : null}
+                value={
+                  form.lotId ? { label: form.lotId, value: form.lotId } : null
+                }
               />
             )}
           </div>
@@ -402,7 +518,11 @@ function ItemForm({ mode }: ItemFormProps) {
 
       {toast && (
         <div className="flex justify-center mt-4">
-          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         </div>
       )}
     </>
