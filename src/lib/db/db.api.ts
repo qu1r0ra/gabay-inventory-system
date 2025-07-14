@@ -130,10 +130,12 @@ function validateArray(
   if (!required && value !== undefined && !Array.isArray(value)) {
     throw new ApiError(`${name} must be an array`, 400, "BAD_REQUEST");
   }
-  if (opts.ofType && Array.isArray(value)) {
+  if (Array.isArray(value) && typeof opts.ofType === "function") {
     value.forEach((v, i) => {
       try {
-        opts.ofType(v);
+        if (opts.ofType) {
+          opts.ofType(v);
+        }
       } catch (e) {
         throw new ApiError(
           `${name}[${i}]: ${(e as Error).message}`,
@@ -779,16 +781,16 @@ export const inventoryApi = {
           .from("transactions")
           .select(
             `
-          id,
-          lot_id,
-          item_qty_change,
-          type,
-          created_at,
-          users ( name ),
-          item_stocks (
-            items ( name )
-          )
-        `
+        id,
+        lot_id,
+        item_qty_change,
+        type,
+        created_at,
+        users ( name ),
+        item_stocks (
+          items ( name )
+        )
+      `
           )
           .order("created_at", { ascending: false }),
 
@@ -796,15 +798,15 @@ export const inventoryApi = {
           .from("corrections")
           .select(
             `
-          id,
-          lot_id,
-          item_qty_after,
-          created_at,
-          users ( name ),
-          item_stocks (
-            items ( name )
-          )
-        `
+        id,
+        lot_id,
+        item_qty_after,
+        created_at,
+        users ( name ),
+        item_stocks (
+          items ( name )
+        )
+      `
           )
           .order("created_at", { ascending: false }),
       ]);
@@ -823,38 +825,52 @@ export const inventoryApi = {
         throw correctionsResult.error;
       }
 
-      const transactions = (transactionsResult.data || []).map((tx: any) => ({
-        id: `tx-${tx.id}`,
-        actor: tx.users?.name ?? "Unknown",
-        item: tx.item_stocks?.items?.name ?? "Unknown",
-        lotId: tx.lot_id,
-        date: tx.created_at.split("T")[0],
-        time: tx.created_at.split("T")[1]?.slice(0, 5) ?? "",
-        type:
-          tx.type === "DEPOSIT"
-            ? `+${tx.item_qty_change}`
-            : tx.type === "DISTRIBUTE" || tx.type === "DISPOSE"
-            ? `${tx.item_qty_change}` // already negative
-            : tx.type === "DELETE"
-            ? "X"
-            : tx.type,
-      }));
+      const transactions = (transactionsResult.data || []).map((tx: any) => {
+        const localDate = new Date(tx.created_at);
+        return {
+          id: `tx-${tx.id}`,
+          actor: tx.users?.name ?? "Unknown",
+          item: tx.item_stocks?.items?.name ?? "Unknown",
+          lotId: tx.lot_id,
+          date: localDate.toLocaleDateString("en-CA"), // YYYY-MM-DD
+          time: localDate.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }), // HH:MM
+          type:
+            tx.type === "DEPOSIT"
+              ? `+${tx.item_qty_change}`
+              : tx.type === "DISTRIBUTE" || tx.type === "DISPOSE"
+              ? `${tx.item_qty_change}` // already negative
+              : tx.type === "DELETE"
+              ? "X"
+              : tx.type,
+        };
+      });
 
-      const corrections = (correctionsResult.data || []).map((corr: any) => ({
-        id: `corr-${corr.id}`,
-        actor: corr.users?.name ?? "Unknown",
-        item: corr.item_stocks?.items?.name ?? "Unknown",
-        lotId: corr.lot_id,
-        date: corr.created_at.split("T")[0],
-        time: corr.created_at.split("T")[1]?.slice(0, 5) ?? "",
-        type: `=${corr.item_qty_after}`,
-      }));
+      const corrections = (correctionsResult.data || []).map((corr: any) => {
+        const localDate = new Date(corr.created_at);
+        return {
+          id: `corr-${corr.id}`,
+          actor: corr.users?.name ?? "Unknown",
+          item: corr.item_stocks?.items?.name ?? "Unknown",
+          lotId: corr.lot_id,
+          date: localDate.toLocaleDateString("en-CA"),
+          time: localDate.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
+          type: `=${corr.item_qty_after}`,
+        };
+      });
 
-      const combined = [...transactions, ...corrections].sort((a, b) =>
-        a.date === b.date
-          ? b.time.localeCompare(a.time)
-          : b.date.localeCompare(a.date)
-      );
+      const combined = [...transactions, ...corrections].sort((a, b) => {
+        const aDate = new Date(`${a.date}T${a.time}`);
+        const bDate = new Date(`${b.date}T${b.time}`);
+        return bDate.getTime() - aDate.getTime(); // Newest first
+      });
 
       logger.success(`Fetched ${combined.length} activity log entries`);
       return combined;

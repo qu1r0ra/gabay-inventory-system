@@ -53,10 +53,12 @@ function ActivityLog() {
         : true
     )
     .sort((a, b) => {
-      if (sort === "date_asc")
-        return new Date(a.date) > new Date(b.date) ? 1 : -1;
+      const dateTimeA = new Date(`${a.date}T${a.time}`);
+      const dateTimeB = new Date(`${b.date}T${b.time}`);
+
+      if (sort === "date_asc") return dateTimeA.getTime() - dateTimeB.getTime();
       if (sort === "date_desc")
-        return new Date(a.date) < new Date(b.date) ? 1 : -1;
+        return dateTimeB.getTime() - dateTimeA.getTime();
       if (sort === "name") return a.item.localeCompare(b.item);
       return 0;
     });
