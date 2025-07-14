@@ -4,6 +4,7 @@ import Button from "../components/Button";
 import { inventoryApi } from "../lib/db/db.api";
 import { useNavigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
+import { useSearchParams } from "react-router-dom";
 
 const columns = [
   { key: "name", label: "Item Name" },
@@ -18,63 +19,97 @@ const ROWS_PER_PAGE = 14;
 
 function Inventory() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { query } = useSearch();
   const [rawData, setRawData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(
+    () => searchParams.get("filter") || "all"
+  );
   const [sort, setSort] = useState("mod_desc");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const result = await inventoryApi.getItems();
-        const flattened = result.flatMap((item: any) =>
-          item.item_stocks
-            .filter((stock: any) => !stock.is_deleted) // exclude soft-deleted
-            .map((stock: any) => ({
-              name: item.name,
-              lotId: stock.lot_id,
-              qty: stock.item_qty,
-              expDate: stock.expiry_date?.split("T")[0] || "N/A",
-              lastModified: stock.updated_at?.split("T")[0] || "N/A",
-              lastModifiedRaw: stock.updated_at || "", // keep raw datetime for sorting
-              isLowStock: stock.is_low_stock,
-              isExpiringSoon: stock.is_expiring_soon,
-              action: "",
-            }))
-        );
-        setRawData(flattened);
+        let result;
+
+        if (filter === "low") {
+          const lowStocks = await inventoryApi.getLowStockItems(); // default threshold = 10
+          result = lowStocks.map((stock: any) => ({
+            name: stock.items.name,
+            lotId: stock.lot_id,
+            qty: stock.item_qty,
+            expDate: stock.expiry_date?.split("T")[0] || "N/A",
+            lastModified: stock.updated_at?.split("T")[0] || "N/A",
+            lastModifiedRaw: stock.updated_at || "",
+            action: "",
+          }));
+        } else if (filter === "expiring") {
+          const expiringStocks = await inventoryApi.getNearExpiryItems(); // default = 30 days
+          result = expiringStocks.map((stock: any) => ({
+            name: stock.items.name,
+            lotId: stock.lot_id,
+            qty: stock.item_qty,
+            expDate: stock.expiry_date?.split("T")[0] || "N/A",
+            lastModified: stock.updated_at?.split("T")[0] || "N/A",
+            lastModifiedRaw: stock.updated_at || "",
+            action: "",
+          }));
+        } else if (filter === "expired") {
+          const expiredStocks = await inventoryApi.getExpiredItems();
+          result = expiredStocks.map((stock: any) => ({
+            name: stock.items.name,
+            lotId: stock.lot_id,
+            qty: stock.item_qty,
+            expDate: stock.expiry_date?.split("T")[0] || "N/A",
+            lastModified: stock.updated_at?.split("T")[0] || "N/A",
+            lastModifiedRaw: stock.updated_at || "",
+            action: "",
+          }));
+        } else {
+          const items = await inventoryApi.getItems();
+          result = items.flatMap((item: any) =>
+            item.item_stocks
+              .filter((stock: any) => !stock.is_deleted)
+              .map((stock: any) => ({
+                name: item.name,
+                lotId: stock.lot_id,
+                qty: stock.item_qty,
+                expDate: stock.expiry_date?.split("T")[0] || "N/A",
+                lastModified: stock.updated_at?.split("T")[0] || "N/A",
+                lastModifiedRaw: stock.updated_at || "",
+                action: "",
+              }))
+          );
+        }
+
+        setRawData(result);
       } catch (error) {
         console.error("Error loading items:", error);
       }
     };
 
     fetchItems();
-  }, []);
+  }, [filter]);
 
-  // Filter, Search, Sort
+  // Search, Sort
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("filter", filter);
+    navigate(`/inventory?${params.toString()}`, { replace: true });
+  }, [filter]);
+
   useEffect(() => {
     let result = [...rawData];
 
-    // Filter
-    if (filter === "low") {
-      result = result.filter((item) => item.isLowStock);
-    } else if (filter === "expiring") {
-      result = result.filter((item) => item.isExpiringSoon);
-    } else if (filter === "expired") {
-      const today = new Date();
-      result = result.filter((item) => {
-        const exp = new Date(item.expDate);
-        return !isNaN(exp.getTime()) && exp < today;
-      });
-    }
-
     // Search
     if (query.trim() !== "") {
-      result = result.filter((item) =>
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.lotId.toLowerCase().includes(query.toLowerCase())
+      result = result.filter(
+        (item) =>
+          item.name.toLowerCase().includes(query.toLowerCase()) ||
+          item.lotId.toLowerCase().includes(query.toLowerCase())
       );
     }
 
@@ -105,7 +140,7 @@ function Inventory() {
 
     setFilteredData(result);
     setPage(0);
-  }, [rawData, filter, sort, query]);
+  }, [rawData, sort, query]); // 🟡 Note: `filter` removed from deps since it's used in rawData fetching now
 
   const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
   const startIdx = page * ROWS_PER_PAGE;
@@ -116,14 +151,16 @@ function Inventory() {
     visibleRows.length < ROWS_PER_PAGE
       ? [
           ...visibleRows,
-          ...Array.from({ length: ROWS_PER_PAGE - visibleRows.length }).map(() => ({
-            name: "",
-            lotId: "",
-            qty: "",
-            expDate: "",
-            lastModified: "",
-            action: "",
-          })),
+          ...Array.from({ length: ROWS_PER_PAGE - visibleRows.length }).map(
+            () => ({
+              name: "",
+              lotId: "",
+              qty: "",
+              expDate: "",
+              lastModified: "",
+              action: "",
+            })
+          ),
         ]
       : visibleRows;
 
@@ -174,7 +211,11 @@ function Inventory() {
       {/* Pagination */}
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-6">
-          <Button size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))}>
+          <Button
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(p - 1, 0))}
+          >
             Back
           </Button>
           <Button

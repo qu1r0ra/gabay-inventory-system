@@ -584,6 +584,7 @@ export const inventoryApi = {
       .from("item_stocks")
       .select(`*, items ( name )`)
       .lte("item_qty", threshold)
+      .eq("is_deleted", false) // 👈 Exclude soft-deleted
       .order("item_qty", { ascending: true });
 
     if (error) {
@@ -603,12 +604,14 @@ export const inventoryApi = {
     const future = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
     const todayStr = today.toISOString().slice(0, 10);
     const futureStr = future.toISOString().slice(0, 10);
+
     const { data, error } = await supabase
       .from("item_stocks")
       .select(`*, items ( name )`)
       .not("expiry_date", "is", null)
       .gte("expiry_date", todayStr)
       .lte("expiry_date", futureStr)
+      .eq("is_deleted", false) // 👈 Exclude soft-deleted
       .order("expiry_date", { ascending: true });
 
     if (error) {
@@ -625,11 +628,13 @@ export const inventoryApi = {
   async getExpiredItems() {
     logger.info("Fetching expired items");
     const todayStr = new Date().toISOString().slice(0, 10);
+
     const { data, error } = await supabase
       .from("item_stocks")
       .select(`*, items ( name )`)
       .not("expiry_date", "is", null)
       .lt("expiry_date", todayStr)
+      .eq("is_deleted", false) // 👈 Exclude soft-deleted
       .order("expiry_date", { ascending: true });
 
     if (error) {
@@ -778,6 +783,40 @@ export const inventoryApi = {
 
     logger.success(`Fetched ${data?.length || 0} recent notifications`);
     return data;
+  },
+  /**
+   * Get total quantities added and taken within the current month.
+   */
+  async getMonthlyTransactionSummary() {
+    const startDate = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1
+    ).toISOString();
+    const endDate = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("type, item_qty_change")
+      .gte("created_at", startDate)
+      .lte("created_at", endDate)
+      .not("type", "eq", "DELETE"); // exclude deleted
+
+    if (error) {
+      logger.error("Failed to fetch monthly transactions: " + error.message);
+      throw error;
+    }
+
+    let itemsAdded = 0;
+    let itemsTaken = 0;
+
+    data?.forEach((t: any) => {
+      if (t.type === "DEPOSIT") itemsAdded += t.item_qty_change;
+      if (t.type === "DISTRIBUTE" || t.type === "DISPOSE")
+        itemsTaken += Math.abs(t.item_qty_change); // 👈 FIX HERE
+    });
+
+    return { itemsAdded, itemsTaken };
   },
 
   /**
