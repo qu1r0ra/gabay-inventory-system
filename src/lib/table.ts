@@ -4,14 +4,23 @@
  */
 
 import { assert } from "console";
+import { marked } from "marked";
+import html_to_pdf from "html-pdf-node";
+import { readFileSync, writeFileSync } from "fs";
 
 type TableAlignment = "l" | "c" | "r";
 
-function table(
+/**
+ * @param columnNames
+ * @param data
+ * @param alignments optional list of alignment options corresponding to each column name
+ * @returns string
+ */
+function tableToMarkdown(
   columnNames: string[],
   data: string[][],
   alignments?: TableAlignment[]
-) {
+): string {
   let out = "";
   let headerBorder = "";
 
@@ -111,13 +120,38 @@ function table(
 }
 
 /**
+ * @warn The html_to_pdf library doesn't seem to respect
+ *       table alignment options. The alternatives would be to run a headless
+ *       browser, but that might use too much processing power.
+ * @param markdown
+ * @param outputPath If provided, saves to this path
+ * @returns PDF blob
+ */
+async function markdownToPdf(
+  markdown: string,
+  outputPath?: string
+): Promise<Blob> {
+  // Parse markdown table into rows
+  const html = await marked.parse(markdown); // <table>...</table>
+  const style = `<style>${readFileSync("table-style.css")}</style>`;
+  const file = { content: html + style };
+  const options = { format: "A4" };
+
+  // "Compiling the template with handlebars" appears here
+  const pdf = await html_to_pdf.generatePdf(file, options);
+  if (outputPath) writeFileSync(outputPath, pdf);
+
+  return pdf;
+}
+
+/**
  * Expected output:
  * | Item Name           | Lot ID |  Qty | Expiration Date | Last Modified |
  * | :------------------ | :----: | ---: | :-------------- | :-----------: |
  * | Antibiotic Ointment |  A-01  |   95 | 2025-08-10      |  2025-07-06   |
  * | Bandages            |  B-01  |  100 | 2030-12-31      |  2025-07-10   |
  */
-function main() {
+async function main() {
   const columnNames: string[] = [
     "Item Name",
     "Lot ID",
@@ -129,9 +163,14 @@ function main() {
     ["Antibiotic Ointment", "A-01", "95", "2025-08-10", "2025-07-06"],
     ["Bandages", "B-01", "100", "2030-12-31", "2025-07-10"],
   ];
-  const alignments: TableAlignment[] = ["l", "c", "r", "l", "c"]; // optional
-  const out = table(columnNames, data, alignments);
-  console.log(out);
+
+  // optional
+  const alignments: TableAlignment[] = ["l", "c", "r", "l", "c"];
+
+  const out: string = tableToMarkdown(columnNames, data, alignments);
+
+  // if output path is provided, file is saved there
+  const pdf: Blob = await markdownToPdf(out, "test.pdf");
 }
 
 /**
@@ -139,5 +178,5 @@ function main() {
  * Equivalent to python's `if __name__ == '__main__':`
  */
 if (process.argv[1] === import.meta.filename) {
-  main();
+  await main();
 }
