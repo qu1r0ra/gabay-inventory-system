@@ -1,4 +1,4 @@
-function Expiry_notif() {
+function Expiry_Notif() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-color-main">
       <h1 className="text-2xl font-bold text-color-primary mb-4">Notifications</h1>
@@ -7,4 +7,4 @@ function Expiry_notif() {
   );
 }
 
-export default Expiry_notif;
+export default Expiry_Notif;
