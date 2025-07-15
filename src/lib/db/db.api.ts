@@ -212,7 +212,7 @@ export const inventoryApi = {
       }
     }
     logger.info(`Creating item: ${data.name}`);
-
+    
     const { data: item, error: itemError } = await supabase
       .from("items")
       .insert({ name: data.name })
@@ -230,7 +230,7 @@ export const inventoryApi = {
       logger.info(
         `Creating new lot ${data.initialStock.lotId} for item ${item.name}`
       );
-
+      
       const { error: stockError } = await supabase.from("item_stocks").insert({
         item_id: item.id,
         lot_id: data.initialStock.lotId,
@@ -242,7 +242,7 @@ export const inventoryApi = {
         logger.error(`Failed to create item_stocks row: ${stockError.message}`);
         throw stockError;
       }
-
+      
       logger.success(
         `Lot created; depositing initial stock: ${data.initialStock.quantity} units`
       );
@@ -356,7 +356,7 @@ export const inventoryApi = {
     validateString(id, "id");
     if (data.name !== undefined) validateString(data.name, "name", false);
     logger.info(`Updating item with ID: ${id}`);
-
+    
     if (data.name) {
       // Uniqueness check
       const { data: existing, error: checkError } = await supabase
@@ -379,19 +379,19 @@ export const inventoryApi = {
           "DUPLICATE_ITEM_NAME"
         );
       }
-      const { error: itemError } = await supabase
-        .from("items")
-        .update({
-          name: data.name,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
+    const { error: itemError } = await supabase
+      .from("items")
+      .update({
+        name: data.name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
 
       if (itemError) {
         logger.error(`Failed to update item name: ${itemError.message}`);
         throw itemError;
       }
-
+      
       logger.success(`Item name updated to: ${data.name}`);
     }
 
@@ -410,7 +410,7 @@ export const inventoryApi = {
     logger.info(`Updating lot ID from ${oldLotId} to ${newLotId}`);
 
     const { error } = await supabase
-      .from("item_stocks")
+        .from("item_stocks")
       .update({ lot_id: newLotId })
       .eq("lot_id", oldLotId);
 
@@ -465,7 +465,7 @@ export const inventoryApi = {
     if (newLotId && newLotId !== oldLotId) {
       // Check for conflict
       const { data: existing, error: checkError } = await supabase
-        .from("item_stocks")
+          .from("item_stocks")
         .select("lot_id")
         .eq("lot_id", newLotId)
         .eq("is_deleted", false)
@@ -516,14 +516,14 @@ export const inventoryApi = {
   async deleteItem(id: string) {
     validateString(id, "id");
     logger.info(`Deleting item with ID: ${id}`);
-
+    
     const { error } = await supabase.from("items").delete().eq("id", id);
 
     if (error) {
       logger.error(`Failed to delete item: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Item deleted successfully`);
     return true;
   },
@@ -647,7 +647,7 @@ export const inventoryApi = {
       logger.error(`Failed to apply correction: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Correction applied; stock will be updated by trigger.`);
     return true;
   },
@@ -1025,7 +1025,7 @@ export const inventoryApi = {
     logger.info(
       `Generating report from ${filters.startDate} to ${filters.endDate}`
     );
-
+    
     const { data, error } = await supabase
       .from("transactions")
       .select(
@@ -1053,7 +1053,7 @@ export const inventoryApi = {
       logger.error(`Failed to generate report: ${error.message}`);
       throw error;
     }
-
+    
     logger.success(`Report generated with ${data?.length || 0} transactions`);
     return data;
   },
@@ -1068,16 +1068,7 @@ export const inventoryApi = {
     );
     let query = supabase
       .from("notifications")
-      .select(
-        `
-        *,
-        item_stocks!inner (
-          item_qty,
-          expiry_date,
-          items (name)
-        )
-      `
-      )
+      .select("*")
       .order("created_at", { ascending: false });
     if (filter.type) {
       query = query.eq("type", filter.type);
@@ -1092,9 +1083,42 @@ export const inventoryApi = {
       logger.error(`Failed to fetch notifications: ${error.message}`);
       throw error;
     }
-
-    logger.success(`Fetched ${data?.length || 0} notifications`);
-    return data;
+    if (!data) return [];
+    // Gather all lot_ids from all notifications
+    const allLotIds = Array.from(
+      new Set(data.flatMap((notif: any) => notif.lot_ids || []))
+    );
+    let lotDetails: any[] = [];
+    if (allLotIds.length > 0) {
+      try {
+        // Fetch all lots, including deleted
+        lotDetails = await inventoryApi.getItemsByLotIds(allLotIds, "all");
+      } catch (e) {
+        logger.error(`Failed to fetch lot details for notifications: ${(e as Error).message}`);
+        lotDetails = [];
+      }
+    }
+    // Map lotId to detail for quick lookup
+    const lotMap: Record<string, any> = {};
+    lotDetails.forEach((lot: any) => {
+      lotMap[lot.lot_id] = {
+        ...lot,
+        deleted: !!lot.is_deleted,
+      };
+    });
+    // Attach stocks to each notification
+    const notificationsWithStocks = data.map((notif: any) => {
+      const stocks = (notif.lot_ids || []).map((lotId: string) => {
+        if (lotMap[lotId]) {
+          return lotMap[lotId];
+        } else {
+          return { lot_id: lotId, invalid: true };
+        }
+      });
+      return { ...notif, stocks };
+    });
+    logger.success(`Fetched ${notificationsWithStocks.length} notifications (with stocks)`);
+    return notificationsWithStocks;
   },
 
   /**
@@ -1103,29 +1127,8 @@ export const inventoryApi = {
   async getNotificationsByType(type: "LOW_STOCK" | "NEAR_EXPIRY" | "EXPIRED") {
     validateEnum(type, "type", NOTIFICATION_TYPES);
     logger.info(`Fetching notifications of type: ${type}`);
-
-    const { data, error } = await supabase
-      .from("notifications")
-      .select(
-        `
-        *,
-        item_stocks!inner (
-          item_qty,
-          expiry_date,
-          items (name)
-        )
-      `
-      )
-      .eq("type", type)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      logger.error(`Failed to fetch ${type} notifications: ${error.message}`);
-      throw error;
-    }
-
-    logger.success(`Fetched ${data?.length || 0} ${type} notifications`);
-    return data;
+    // Use the refactored getNotifications
+    return this.getNotifications({ type });
   },
 
   /**
@@ -1134,32 +1137,8 @@ export const inventoryApi = {
   async getRecentNotifications(days: number = 30) {
     validateNumber(days, "days", { min: 0, integer: true });
     logger.info(`Fetching notifications from last ${days} days`);
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-
-    const { data, error } = await supabase
-      .from("notifications")
-      .select(
-        `
-        *,
-        item_stocks!inner (
-          item_qty,
-          expiry_date,
-          items (name)
-        )
-      `
-      )
-      .gte("created_at", cutoffDate.toISOString())
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      logger.error(`Failed to fetch recent notifications: ${error.message}`);
-      throw error;
-    }
-
-    logger.success(`Fetched ${data?.length || 0} recent notifications`);
-    return data;
+    // Use the refactored getNotifications
+    return this.getNotifications({ days });
   },
   /**
    * Get total quantities added and taken within the current month.
@@ -1171,7 +1150,7 @@ export const inventoryApi = {
       1
     ).toISOString();
     const endDate = new Date().toISOString();
-
+    
     const { data, error } = await supabase
       .from("transactions")
       .select("type, item_qty_change")
@@ -1183,7 +1162,7 @@ export const inventoryApi = {
       logger.error("Failed to fetch monthly transactions: " + error.message);
       throw error;
     }
-
+    
     let itemsAdded = 0;
     let itemsTaken = 0;
 
@@ -1244,7 +1223,7 @@ export const inventoryApi = {
       );
       throw error;
     }
-
+    
     if (!data) {
       logger.success(`Fetched 0 detailed item information`);
       return [];
