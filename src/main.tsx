@@ -53,10 +53,6 @@ const router = createBrowserRouter([
         element: <CheckOut />,
       },
       {
-        path: "/notifications",
-        element: <Notifications />,
-      },
-      {
         path: "/Expiry_Notif",
         element: <ExpiryNotif />,
       },
