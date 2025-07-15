@@ -9,7 +9,7 @@ type NotificationCardProps = {
 export default function NotificationCard({ text, type }: NotificationCardProps) {
   const linkPath =
     type === "Qty" ? "/Qty_Notif" : type === "Expiry" ? "/Expiry_Notif" : "#";
-s
+
   return (
     <Link to={linkPath}>
       <div className="flex justify-between items-center bg-white border border-gray-300 rounded-lg p-5 shadow-sm hover:bg-gray-100 cursor-pointer transition">
