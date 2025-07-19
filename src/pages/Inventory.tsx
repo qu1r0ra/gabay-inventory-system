@@ -5,6 +5,7 @@ import { inventoryApi } from "../lib/db/db.api";
 import { useNavigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
 import { useSearchParams } from "react-router-dom";
+import { useItemSelection } from "../contexts/ItemSelectionContext";
 
 const columns = [
   { key: "name", label: "Item Name" },
@@ -19,6 +20,7 @@ const ROWS_PER_PAGE = 14;
 
 function Inventory() {
   const navigate = useNavigate();
+  const { confirmSelection } = useItemSelection();
   const [searchParams] = useSearchParams();
   const { query } = useSearch();
   const [rawData, setRawData] = useState<any[]>([]);
@@ -173,7 +175,13 @@ function Inventory() {
             <Button size="xs" onClick={() => navigate("/add-item")}>
               Add Item
             </Button>
-            <Button size="xs" onClick={() => navigate("/check-out")}>
+            <Button
+              size="xs"
+              onClick={() => {
+                confirmSelection();
+                navigate("/check-out");
+              }}
+            >
               Confirm
             </Button>
           </div>
