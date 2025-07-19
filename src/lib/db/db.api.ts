@@ -212,7 +212,7 @@ export const inventoryApi = {
       }
     }
     logger.info(`Creating item: ${data.name}`);
-    
+
     const { data: item, error: itemError } = await supabase
       .from("items")
       .insert({ name: data.name })
@@ -230,7 +230,7 @@ export const inventoryApi = {
       logger.info(
         `Creating new lot ${data.initialStock.lotId} for item ${item.name}`
       );
-      
+
       const { error: stockError } = await supabase.from("item_stocks").insert({
         item_id: item.id,
         lot_id: data.initialStock.lotId,
@@ -242,7 +242,7 @@ export const inventoryApi = {
         logger.error(`Failed to create item_stocks row: ${stockError.message}`);
         throw stockError;
       }
-      
+
       logger.success(
         `Lot created; depositing initial stock: ${data.initialStock.quantity} units`
       );
@@ -356,7 +356,7 @@ export const inventoryApi = {
     validateString(id, "id");
     if (data.name !== undefined) validateString(data.name, "name", false);
     logger.info(`Updating item with ID: ${id}`);
-    
+
     if (data.name) {
       // Uniqueness check
       const { data: existing, error: checkError } = await supabase
@@ -379,19 +379,19 @@ export const inventoryApi = {
           "DUPLICATE_ITEM_NAME"
         );
       }
-    const { error: itemError } = await supabase
-      .from("items")
-      .update({
-        name: data.name,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+      const { error: itemError } = await supabase
+        .from("items")
+        .update({
+          name: data.name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
 
       if (itemError) {
         logger.error(`Failed to update item name: ${itemError.message}`);
         throw itemError;
       }
-      
+
       logger.success(`Item name updated to: ${data.name}`);
     }
 
@@ -410,7 +410,7 @@ export const inventoryApi = {
     logger.info(`Updating lot ID from ${oldLotId} to ${newLotId}`);
 
     const { error } = await supabase
-        .from("item_stocks")
+      .from("item_stocks")
       .update({ lot_id: newLotId })
       .eq("lot_id", oldLotId);
 
@@ -465,7 +465,7 @@ export const inventoryApi = {
     if (newLotId && newLotId !== oldLotId) {
       // Check for conflict
       const { data: existing, error: checkError } = await supabase
-          .from("item_stocks")
+        .from("item_stocks")
         .select("lot_id")
         .eq("lot_id", newLotId)
         .eq("is_deleted", false)
@@ -516,14 +516,14 @@ export const inventoryApi = {
   async deleteItem(id: string) {
     validateString(id, "id");
     logger.info(`Deleting item with ID: ${id}`);
-    
+
     const { error } = await supabase.from("items").delete().eq("id", id);
 
     if (error) {
       logger.error(`Failed to delete item: ${error.message}`);
       throw error;
     }
-    
+
     logger.success(`Item deleted successfully`);
     return true;
   },
@@ -647,7 +647,7 @@ export const inventoryApi = {
       logger.error(`Failed to apply correction: ${error.message}`);
       throw error;
     }
-    
+
     logger.success(`Correction applied; stock will be updated by trigger.`);
     return true;
   },
@@ -1025,7 +1025,7 @@ export const inventoryApi = {
     logger.info(
       `Generating report from ${filters.startDate} to ${filters.endDate}`
     );
-    
+
     const { data, error } = await supabase
       .from("transactions")
       .select(
@@ -1053,7 +1053,7 @@ export const inventoryApi = {
       logger.error(`Failed to generate report: ${error.message}`);
       throw error;
     }
-    
+
     logger.success(`Report generated with ${data?.length || 0} transactions`);
     return data;
   },
@@ -1094,7 +1094,11 @@ export const inventoryApi = {
         // Fetch all lots, including deleted
         lotDetails = await inventoryApi.getItemsByLotIds(allLotIds, "all");
       } catch (e) {
-        logger.error(`Failed to fetch lot details for notifications: ${(e as Error).message}`);
+        logger.error(
+          `Failed to fetch lot details for notifications: ${
+            (e as Error).message
+          }`
+        );
         lotDetails = [];
       }
     }
@@ -1117,7 +1121,9 @@ export const inventoryApi = {
       });
       return { ...notif, stocks };
     });
-    logger.success(`Fetched ${notificationsWithStocks.length} notifications (with stocks)`);
+    logger.success(
+      `Fetched ${notificationsWithStocks.length} notifications (with stocks)`
+    );
     return notificationsWithStocks;
   },
 
@@ -1150,7 +1156,7 @@ export const inventoryApi = {
       1
     ).toISOString();
     const endDate = new Date().toISOString();
-    
+
     const { data, error } = await supabase
       .from("transactions")
       .select("type, item_qty_change")
@@ -1162,7 +1168,7 @@ export const inventoryApi = {
       logger.error("Failed to fetch monthly transactions: " + error.message);
       throw error;
     }
-    
+
     let itemsAdded = 0;
     let itemsTaken = 0;
 
@@ -1198,17 +1204,18 @@ export const inventoryApi = {
       .from("item_stocks")
       .select(
         `
-        *,
-        items (
-          id,
-          name,
-          created_at,
-          updated_at
-        )
-      `
+      *,
+      items (
+        id,
+        name,
+        created_at,
+        updated_at
+      )
+    `
       )
       .in("lot_id", lotIds)
       .order("items(name)", { ascending: true });
+
     if (filter === "deleted") {
       query = query.eq("is_deleted", true);
     } else if (filter === "active") {
@@ -1223,21 +1230,17 @@ export const inventoryApi = {
       );
       throw error;
     }
-    
+
     if (!data) {
       logger.success(`Fetched 0 detailed item information`);
       return [];
     }
 
-    const itemDetails = await Promise.all(
-      data.map(async (stock) => {
-        const item = await inventoryApi.getItem(stock.item_id, filter);
-        return {
-          ...stock,
-          item,
-        };
-      })
-    );
+    // Rename "items" field to "item" for consistency
+    const itemDetails = data.map(({ items, ...stock }) => ({
+      ...stock,
+      item: items,
+    }));
 
     logger.success(`Fetched ${itemDetails.length} detailed item information`);
     return itemDetails;
