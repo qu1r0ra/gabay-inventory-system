@@ -63,7 +63,7 @@ export const AuthContextProvider = ({
   const register = async (
     username: string,
     password: string,
-    is_admin: false
+    is_admin?: boolean
   ) => {
     // Just generate a placeholder email because supabase wants an email
     const email = `${username}@gabay.org`;

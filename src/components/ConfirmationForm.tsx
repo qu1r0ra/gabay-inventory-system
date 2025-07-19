@@ -2,14 +2,17 @@ import { useState } from "react";
 import { Heading } from "./Heading";
 import NumberStepper from "./NumberStepper";
 import Button from "./Button";
+import Toast from "./Toast";
 import { useItemSelection } from "../contexts/ItemSelectionContext";
+import { useAuth } from "../lib/db/db.auth";
+import { inventoryApi } from "../lib/db/db.api";
 
 type ConfirmedItem = {
   lotId: string;
   name: string;
   expDate: string;
-  totalQty: number; // total stock available
-  qtyTaken: number; // user-selected quantity (modifiable)
+  totalQty: number;
+  qtyTaken: number;
 };
 
 function ConfirmationForm() {
@@ -18,6 +21,12 @@ function ConfirmationForm() {
   const items = Object.values(confirmedItems) as ConfirmedItem[];
 
   const [selectedLotIds, setSelectedLotIds] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
+
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: "success" | "error";
+  } | null>(null);
 
   const toggleSelection = (lotId: string) => {
     setSelectedLotIds((prev) => {
@@ -30,10 +39,56 @@ function ConfirmationForm() {
   const handleRemove = () => {
     removeConfirmedItems(Array.from(selectedLotIds));
     setSelectedLotIds(new Set());
+    setToast({ message: "Items removed successfully." });
+  };
+
+  const handleConfirm = async () => {
+    if (!user) {
+      setToast({ message: "User not authenticated.", type: "error" });
+      return;
+    }
+
+    const selectedItems = items.filter((item) =>
+      selectedLotIds.has(item.lotId)
+    );
+
+    if (selectedItems.length === 0) {
+      setToast({ message: "Please select items to confirm.", type: "error" });
+      return;
+    }
+
+    try {
+      for (const item of selectedItems) {
+        await inventoryApi.createTransaction({
+          lotId: item.lotId,
+          userId: user.id,
+          quantity: item.qtyTaken,
+          type: "DISTRIBUTE",
+        });
+      }
+
+      setToast({ message: "Transactions successful!" });
+      removeConfirmedItems(selectedItems.map((i) => i.lotId));
+      setSelectedLotIds(new Set());
+    } catch (err) {
+      console.error(err);
+      setToast({ message: "Failed to create transactions.", type: "error" });
+    }
   };
 
   return (
-    <div className="w-[900px] h-[650px] bg-white border border-black/70 rounded-lg overflow-hidden flex flex-col">
+    <div className="w-[900px] h-[650px] bg-white border border-black/70 rounded-lg overflow-hidden flex flex-col relative">
+      {/* Toast (bottom center) */}
+      {toast && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-primary px-6 py-4 shrink-0 flex items-center justify-between">
         <Heading level={3} size="sm" className="text-white">
@@ -47,7 +102,9 @@ function ConfirmationForm() {
           >
             Remove
           </Button>
-          <Button size="xs">Confirm</Button>
+          <Button size="xs" onClick={handleConfirm}>
+            Confirm
+          </Button>
         </div>
       </div>
 

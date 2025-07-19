@@ -20,7 +20,7 @@ const ROWS_PER_PAGE = 14;
 
 function Inventory() {
   const navigate = useNavigate();
-  const { confirmSelection } = useItemSelection();
+  const { confirmSelection, selectedItems } = useItemSelection();
   const [searchParams] = useSearchParams();
   const { query } = useSearch();
   const [rawData, setRawData] = useState<any[]>([]);
@@ -36,8 +36,19 @@ function Inventory() {
       try {
         let result;
 
-        if (filter === "low") {
-          const lowStocks = await inventoryApi.getLowStockItems(); // default threshold = 10
+        if (filter === "selected") {
+          const confirmed = Object.values(selectedItems).map((item: any) => ({
+            name: item.name,
+            lotId: item.lotId,
+            qty: item.totalQty,
+            expDate: item.expDate,
+            lastModified: item.lastModified || "N/A",
+            lastModifiedRaw: item.lastModified || "",
+            action: "",
+          }));
+          result = confirmed;
+        } else if (filter === "low") {
+          const lowStocks = await inventoryApi.getLowStockItems();
           result = lowStocks.map((stock: any) => ({
             name: stock.items.name,
             lotId: stock.lot_id,
@@ -48,7 +59,7 @@ function Inventory() {
             action: "",
           }));
         } else if (filter === "expiring") {
-          const expiringStocks = await inventoryApi.getNearExpiryItems(); // default = 30 days
+          const expiringStocks = await inventoryApi.getNearExpiryItems();
           result = expiringStocks.map((stock: any) => ({
             name: stock.items.name,
             lotId: stock.lot_id,
@@ -192,6 +203,7 @@ function Inventory() {
               onChange={(e) => setFilter(e.target.value)}
             >
               <option value="all">All</option>
+              <option value="selected">Selected</option>
               <option value="low">Low Quantity</option>
               <option value="expiring">Expiring Soon</option>
               <option value="expired">Expired</option>
