@@ -42,9 +42,9 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center py-10 gap-12 bg-gray-100">
+    <div className="w-full flex flex-col items-center py-6 sm:py-10 gap-8 sm:gap-12 bg-gray-100 px-4">
       {/* Grid for Dashboard Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 justify-items-center w-full max-w-[900px]">
         <DashboardCard
           to="/inventory"
           title="Total Items"
@@ -72,7 +72,9 @@ function Dashboard() {
       </div>
 
       {/* Centered Report Card below */}
-      <ReportCard itemsAdded={itemsAdded} itemsTaken={itemsTaken} />
+      <div className="w-full max-w-[900px] flex justify-center">
+        <ReportCard itemsAdded={itemsAdded} itemsTaken={itemsTaken} />
+      </div>
     </div>
   );
 }
