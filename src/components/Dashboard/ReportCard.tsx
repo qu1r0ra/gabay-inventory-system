@@ -1,4 +1,4 @@
-import { Heading } from "./Heading";
+import { Heading } from "../General/Heading";
 import { Link } from "react-router-dom";
 
 interface ReportCardProps {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import DashboardCard from "../components/DashboardCard";
-import ReportCard from "../components/ReportCard";
+import DashboardCard from "../components/Dashboard/DashboardCard";
+import ReportCard from "../components/Dashboard/ReportCard";
 import { inventoryApi } from "../lib/db/db.api";
 
 function Dashboard() {

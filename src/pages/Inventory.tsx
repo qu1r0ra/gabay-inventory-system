@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import InventoryTable from "../components/InventoryTable";
-import Button from "../components/Button";
+import InventoryTable from "../components/Inventory/InventoryTable";
+import Button from "../components/General/Button";
 import { inventoryApi } from "../lib/db/db.api";
 import { useNavigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
 import { useSearchParams } from "react-router-dom";
 import { useItemSelection } from "../contexts/ItemSelectionContext";
-import InventoryCard from "../components/InventoryCard";
+import InventoryCard from "../components/Inventory/InventoryCard";
 
 const columns = [
   { key: "name", label: "Item Name" },
@@ -246,14 +246,14 @@ function Inventory() {
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-6">
           <Button
-            size="sm"
+            size="xs"
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(p - 1, 0))}
           >
             Back
           </Button>
           <Button
-            size="sm"
+            size="xs"
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
           >
