@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
 import { useSearchParams } from "react-router-dom";
 import { useItemSelection } from "../contexts/ItemSelectionContext";
+import InventoryCard from "../components/InventoryCard";
 
 const columns = [
   { key: "name", label: "Item Name" },
@@ -153,7 +154,7 @@ function Inventory() {
 
     setFilteredData(result);
     setPage(0);
-  }, [rawData, sort, query]); // 🟡 Note: `filter` removed from deps since it's used in rawData fetching now
+  }, [rawData, sort, query]);
 
   const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
   const startIdx = page * ROWS_PER_PAGE;
@@ -179,10 +180,12 @@ function Inventory() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
-      <div className="w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
+      {/* Container */}
+      <div className="w-full max-w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
         {/* Header */}
-        <div className="h-[70px] bg-primary px-4 py-3 flex justify-between items-center">
-          <div className="flex gap-2">
+        <div className="bg-primary px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          {/* Left side - Buttons */}
+          <div className="flex flex-row gap-2 justify-between">
             <Button size="xs" onClick={() => navigate("/add-item")}>
               Add Item
             </Button>
@@ -196,9 +199,11 @@ function Inventory() {
               Confirm
             </Button>
           </div>
-          <div className="flex gap-4">
+
+          {/* Right side - Filters */}
+          <div className="flex flex-col gap-2 md:flex-row md:gap-4">
             <select
-              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              className="w-full md:w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
@@ -209,7 +214,7 @@ function Inventory() {
               <option value="expired">Expired</option>
             </select>
             <select
-              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              className="w-full md:w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
@@ -224,11 +229,20 @@ function Inventory() {
           </div>
         </div>
 
-        {/* Table */}
-        <InventoryTable columns={columns} data={paddedData} />
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <InventoryTable columns={columns} data={paddedData} />
+        </div>
       </div>
 
-      {/* Pagination */}
+      {/* Mobile Card View (outside container) */}
+      <div className="md:hidden w-full max-w-[1000px] mx-auto flex items-center flex-col gap-4 px-4">
+        {visibleRows.map((item, idx) => (
+          <InventoryCard key={idx} item={item} />
+        ))}
+      </div>
+
+      {/* Pagination (visible on all screen sizes) */}
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-6">
           <Button

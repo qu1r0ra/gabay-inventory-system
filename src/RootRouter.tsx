@@ -15,7 +15,7 @@ function RootRouter() {
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="flex flex-col flex-1">
         <Header setSidebarOpen={setSidebarOpen} />
-        <main className="flex-1 overflow-y-auto p-6 bg-main">
+        <main className="flex-1 overflow-y-auto p-0 bg-main">
           <Outlet />
         </main>
       </div>
