@@ -17,7 +17,7 @@ const columns = [
   { key: "action", label: "Action" },
 ];
 
-const ROWS_PER_PAGE = 14;
+const ROWS_PER_PAGE = 9;
 
 function Inventory() {
   const navigate = useNavigate();
@@ -179,7 +179,7 @@ function Inventory() {
       : visibleRows;
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
+    <div className="flex flex-col items-center justify-start min-h-screen mt-3 p-4 gap-4">
       {/* Container */}
       <div className="w-full max-w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
         {/* Header */}

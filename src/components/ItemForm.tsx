@@ -283,8 +283,8 @@ function ItemForm({ mode }: ItemFormProps) {
   if (isEdit) {
     return (
       <>
-        <div className="w-[600px] h-[750px] border border-black/70 rounded-lg bg-white p-8 flex flex-col">
-          <div className="w-[540px] mb-4">
+        <div className="w-full max-w-[600px] min-h-[750px] mx-4 border border-black/70 rounded-lg bg-white p-4 sm:p-6 md:p-8 flex flex-col">
+          <div className="w-full mb-4">
             <Heading level={2} size="lg" className="text-black mb-1">
               Edit Item Form
             </Heading>
@@ -293,8 +293,8 @@ function ItemForm({ mode }: ItemFormProps) {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-y-8 flex-grow">
-            <div className="w-[540px]">
+          <div className="flex flex-col items-center gap-y-4 sm:gap-y-6 md:gap-y-8 flex-grow">
+            <div className="w-full">
               <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
                 Item Name
               </label>
@@ -312,7 +312,7 @@ function ItemForm({ mode }: ItemFormProps) {
               />
             </div>
 
-            <div className="w-[540px]">
+            <div className="w-full">
               <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
                 Lot ID
               </label>
@@ -338,7 +338,7 @@ function ItemForm({ mode }: ItemFormProps) {
               value={form.newItem}
               onChange={handleChange}
               size="custom"
-              className="w-[540px]"
+              className="w-full"
               placeholder="Enter new item name"
               inputClassName="bg-white"
             />
@@ -351,7 +351,7 @@ function ItemForm({ mode }: ItemFormProps) {
               value={form.newLotId}
               onChange={handleChange}
               size="custom"
-              className="w-[540px]"
+              className="w-full"
               placeholder="Enter new lot ID"
               inputClassName="bg-white"
             />
@@ -364,7 +364,7 @@ function ItemForm({ mode }: ItemFormProps) {
               value={form.quantity}
               onChange={handleChange}
               size="custom"
-              className="w-[540px]"
+              className="w-full"
               placeholder="Enter quantity"
               inputClassName="bg-white"
             />
@@ -377,7 +377,7 @@ function ItemForm({ mode }: ItemFormProps) {
               value={form.expDate}
               onChange={handleChange}
               size="custom"
-              className="w-[540px]"
+              className="w-full"
               inputClassName="bg-white"
             />
           </div>
@@ -404,8 +404,8 @@ function ItemForm({ mode }: ItemFormProps) {
 
   return (
     <>
-      <div className="w-[600px] h-[600px] border border-black/70 rounded-lg bg-white p-8 flex flex-col">
-        <div className="w-[540px] mb-4">
+      <div className="w-full max-w-[600px] min-h-[600px] mx-4 border border-black/70 rounded-lg bg-white p-4 sm:p-6 md:p-8 flex flex-col">
+        <div className="w-full mb-4">
           <Heading level={2} size="lg" className="text-black mb-1">
             {isAdd ? "Add Item Form" : "Delete Item Form"}
           </Heading>
@@ -416,8 +416,8 @@ function ItemForm({ mode }: ItemFormProps) {
           </p>
         </div>
 
-        <div className="flex flex-col items-center gap-y-9 flex-grow">
-          <div className="w-[540px]">
+        <div className="flex flex-col items-center gap-y-4 sm:gap-y-6 md:gap-y-9 flex-grow">
+          <div className="w-full">
             <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
               Item Name
             </label>
@@ -450,7 +450,7 @@ function ItemForm({ mode }: ItemFormProps) {
             )}
           </div>
 
-          <div className="w-[540px]">
+          <div className="w-full">
             <label className="block text-xs font-bold font-Work-Sans text-black mb-1">
               Lot ID
             </label>
@@ -491,7 +491,7 @@ function ItemForm({ mode }: ItemFormProps) {
             value={form.quantity}
             onChange={handleChange}
             size="custom"
-            className="w-[540px]"
+            className="w-full"
             placeholder="Enter quantity"
             inputClassName="bg-white"
             disabled={isDelete}
@@ -505,7 +505,7 @@ function ItemForm({ mode }: ItemFormProps) {
             value={form.expDate}
             onChange={handleChange}
             size="custom"
-            className="w-[540px]"
+            className="w-full"
             inputClassName="bg-white"
             disabled={isDelete || disableExpDate}
           />
