@@ -1,20 +1,20 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "./lib/db/db.auth";
+import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import Login from "./pages/Login";
-import { useAuth } from "./lib/db/db.auth";
 
 function RootRouter() {
   const { user } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Optional: You could still protect internal routes here
   if (!user) return <Navigate to="/login" />;
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="flex flex-col flex-1">
-        <Header />
+        <Header setSidebarOpen={setSidebarOpen} />
         <main className="flex-1 overflow-y-auto p-6 bg-main">
           <Outlet />
         </main>
@@ -22,6 +22,5 @@ function RootRouter() {
     </div>
   );
 }
-
 
 export default RootRouter;
