@@ -38,7 +38,7 @@ function Header({ setSidebarOpen }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center ml-6 mbm:ml-12 mbl:ml-25 tbs:ml-90 gap-2 md:gap-8">
+      <div className="flex items-center ml-6 mbm:ml-14.5 mbl:ml-25 tbs:ml-90 gap-2 md:gap-8">
         <Input
           id="search"
           placeholder="Search..."
