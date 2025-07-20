@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Heading } from "./Heading";
+import { Heading } from "./General/Heading";
 import CreatableSelect from "react-select/creatable";
 import Select from "react-select";
-import Input from "./Input";
-import Button from "./Button";
-import Toast from "./Toast";
+import Input from "./General/Input";
+import Button from "./General/Button";
+import Toast from "./General/Toast";
 import { inventoryApi } from "../lib/db/db.api";
 import { useAuth } from "../lib/db/db.auth";
 

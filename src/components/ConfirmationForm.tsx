@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Heading } from "./Heading";
-import NumberStepper from "./NumberStepper";
-import Button from "./Button";
-import Toast from "./Toast";
+import { Heading } from "./General/Heading";
+import NumberStepper from "./General/NumberStepper";
+import Button from "./General/Button";
+import Toast from "./General/Toast";
 import { useItemSelection } from "../contexts/ItemSelectionContext";
 import { useAuth } from "../lib/db/db.auth";
 import { inventoryApi } from "../lib/db/db.api";

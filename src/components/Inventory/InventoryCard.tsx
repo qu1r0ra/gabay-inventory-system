@@ -1,6 +1,6 @@
 import React from "react";
-import NumberStepper from "./NumberStepper";
-import { useItemSelection } from "../contexts/ItemSelectionContext";
+import NumberStepper from "../General/NumberStepper";
+import { useItemSelection } from "../../contexts/ItemSelectionContext";
 
 interface InventoryCardProps {
   item: {

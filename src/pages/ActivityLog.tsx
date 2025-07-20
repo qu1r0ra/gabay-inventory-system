@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import ActivityLogTable from "../components/ActivityLogTable";
+import ActivityLogTable from "../components/ActivityLog/ActivityLogTable";
+import ActivityLogCard from "../components/ActivityLog/ActivityLogCard";
 import { useSearch } from "../contexts/SearchContext";
-import Button from "../components/Button";
+import Button from "../components/General/Button";
 import { inventoryApi } from "../lib/db/db.api";
 
 const columns = [
@@ -87,13 +88,14 @@ function ActivityLog() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
-      <div className="w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
+      {/* Container */}
+      <div className="w-full max-w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
         {/* Header with dropdowns */}
-        <div className="h-[70px] bg-primary px-4 py-3 flex justify-between items-center">
+        <div className="bg-primary px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex gap-2" />
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-2 md:flex-row md:gap-4">
             <select
-              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              className="w-full md:w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
               value={filter}
               onChange={(e) => {
                 setFilter(e.target.value);
@@ -107,7 +109,7 @@ function ActivityLog() {
               <option value="deleted">Deleted (X)</option>
             </select>
             <select
-              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              className="w-full md:w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
               value={sort}
               onChange={(e) => {
                 setSort(e.target.value);
@@ -121,22 +123,31 @@ function ActivityLog() {
           </div>
         </div>
 
-        {/* Table */}
-        <ActivityLogTable columns={columns} data={paddedData} />
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <ActivityLogTable columns={columns} data={paddedData} />
+        </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden w-full max-w-[1000px] mx-auto flex flex-col gap-4 px-4">
+        {visibleRows.map((entry, idx) => (
+          <ActivityLogCard key={idx} entry={entry} />
+        ))}
       </div>
 
       {/* Pagination */}
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-6">
           <Button
-            size="sm"
+            size="xs"
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(p - 1, 0))}
           >
             Back
           </Button>
           <Button
-            size="sm"
+            size="xs"
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
           >

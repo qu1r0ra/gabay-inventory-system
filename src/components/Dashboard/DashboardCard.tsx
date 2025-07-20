@@ -1,4 +1,5 @@
-import { Heading } from "./Heading";
+// Update the import path below if the actual path or filename is different (e.g., './general/Heading', './General/heading', or '../General/Heading')
+import { Heading } from "../General/Heading";
 import { Link } from "react-router-dom";
 
 type DashboardCardProps = {
@@ -17,7 +18,10 @@ function DashboardCard({ to, title, value, label }: DashboardCardProps) {
         hover:bg-primary hover:border-transparent hover:text-white hover:scale-[1.05]
         active:bg-accent group"
       >
-        <Heading size="md" className="transition-colors group-hover:text-white group-active:text-white">
+        <Heading
+          size="md"
+          className="transition-colors group-hover:text-white group-active:text-white"
+        >
           {title}
         </Heading>
 

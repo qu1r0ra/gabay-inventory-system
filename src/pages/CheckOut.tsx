@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import ConfirmItems from "../components/ConfirmationForm";
-import Button from "../components/Button";
+import Button from "../components/General/Button";
 
 function CheckOut() {
   return (
@@ -8,9 +8,7 @@ function CheckOut() {
       <ConfirmItems />
 
       <Link to="/inventory">
-        <Button size="md">
-          Back
-        </Button>
+        <Button size="md">Back</Button>
       </Link>
     </div>
   );

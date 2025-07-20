@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Heading } from "./Heading";
+import { Heading } from "./General/Heading";
 import logo from "../assets/Logo.png";
 
 export default function Sidebar({

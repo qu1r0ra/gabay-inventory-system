@@ -1,7 +1,7 @@
-import Input from "./Input";
-import Button from "./Button";
+import Input from "./General/Input";
+import Button from "./General/Button";
 import menu from "../assets/hamburger.png";
-import { Heading } from "./Heading";
+import { Heading } from "./General/Heading";
 import { useAuth } from "../lib/db/db.auth";
 import { Navigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
@@ -21,11 +21,12 @@ function Header({ setSidebarOpen }: HeaderProps) {
   if (!user) return <Navigate to="/" />;
 
   return (
-    <div className="h-[60px] md:h-[90px] bg-white sticky top-0 w-full z-10 flex items-center md:justify-between px-3 md:px-6 border-b border-border">
-      <div>
+    <div className="h-[60px] md:h-[90px] bg-white sticky top-0 w-full z-10 flex items-center justify-between px-3 md:px-6 border-b border-border">
+      {/* Left: Hamburger + Welcome */}
+      <div className="flex items-center gap-2">
         <img
           src={menu}
-          className="w-[20px] h-[20px] md:hidden cursor-pointer"
+          className="w-[24px] h-[24px] md:hidden cursor-pointer"
           onClick={() => setSidebarOpen(true)}
         />
         <div className="hidden md:block">
@@ -38,7 +39,8 @@ function Header({ setSidebarOpen }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center ml-6 mbm:ml-14.5 mbl:ml-25 tbs:ml-90 gap-2 md:gap-8">
+      {/* Right: Search + Logout */}
+      <div className="flex items-center gap-2 md:gap-8">
         <Input
           id="search"
           placeholder="Search..."

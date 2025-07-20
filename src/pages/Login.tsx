@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/Logo.png";
-import Input from "../components/Input";
-import Button from "../components/Button";
-import { Heading } from "../components/Heading";
+import Input from "../components/General/Input";
+import Button from "../components/General/Button";
+import { Heading } from "../components/General/Heading";
 import { useAuth } from "../lib/db/db.auth";
 
 function Login() {
