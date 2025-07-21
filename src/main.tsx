@@ -11,8 +11,7 @@ import ActivityLog from "./pages/ActivityLog";
 import AddItem from "./pages/AddItem";
 import CheckOut from "./pages/CheckOut";
 import Notifications from "./pages/Notifications";
-import ExpiryNotif from "./pages/Expiry_notif";
-import QtyNotif from "./pages/Qty_Notif";
+import NotificationDetails from "./pages/NotificationDetails";
 import EditItem from "./pages/EditItem";
 import DeleteItem from "./pages/DeleteItem";
 import GenerateReport from "./pages/GenerateReport";
@@ -54,16 +53,12 @@ const router = createBrowserRouter([
         element: <CheckOut />,
       },
       {
-        path: "/Expiry_Notif",
-        element: <ExpiryNotif />,
-      },
-      {
-        path: "/Qty_Notif",
-        element: <QtyNotif />,
-      },
-      {
         path: "/notifications",
         element: <Notifications />,
+      },
+      {
+        path: "/notifications/:id",
+        element: <NotificationDetails />,
       },
       {
         path: "/edit-item",
