@@ -99,6 +99,7 @@ function validateDate(value: any, name: string, required = true) {
   if (
     !required &&
     value !== undefined &&
+    value !== null && // <-- allow null when not required
     (typeof value !== "string" || isNaN(Date.parse(value)))
   ) {
     throw new ApiError(
@@ -437,7 +438,7 @@ export const inventoryApi = {
     newItemName?: string;
     newLotId?: string;
     quantity?: number;
-    expiryDate?: string;
+    expiryDate?: string | null; // <-- allow null here
     userId: string;
   }) {
     validateString(itemId, "itemId");
@@ -488,8 +489,8 @@ export const inventoryApi = {
     }
 
     // Update expiration date
-    if (expiryDate) {
-      updates.expiry_date = expiryDate;
+    if (expiryDate !== undefined) {
+      updates.expiry_date = expiryDate === null ? null : expiryDate;
     }
 
     if (Object.keys(updates).length > 0) {

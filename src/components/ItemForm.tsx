@@ -213,8 +213,7 @@ function ItemForm({ mode }: ItemFormProps) {
         const itemNameChanged = newName && newName !== matchedItem.name;
         const lotIdChanged = newLot && newLot !== matchedStock.lot_id;
         const qtyChanged = !isNaN(newQty) && newQty !== matchedStock.item_qty;
-        const dateChanged =
-          newDate && newDate !== matchedStock.expiry_date?.split("T")[0];
+        const dateChanged = newDate !== matchedStock.expiry_date?.split("T")[0];
 
         if (!itemNameChanged && !lotIdChanged && !qtyChanged && !dateChanged) {
           throw new Error("No changes detected.");
@@ -226,7 +225,11 @@ function ItemForm({ mode }: ItemFormProps) {
           newItemName: itemNameChanged ? newName : undefined,
           newLotId: lotIdChanged ? newLot : undefined,
           quantity: qtyChanged ? newQty : undefined,
-          expiryDate: dateChanged ? newDate : undefined,
+          expiryDate: dateChanged
+            ? newDate === ""
+              ? null // <-- send null, not undefined
+              : newDate
+            : undefined,
           userId: user.id,
         });
 
