@@ -1127,6 +1127,19 @@ export const inventoryApi = {
     return notificationsWithStocks;
   },
 
+  async deleteNotification(id: string) {
+    validateString(id, "id");
+
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      throw new Error(`Failed to delete notification: ${error.message}`);
+    }
+  },
+
   /**
    * Get notifications by type (LOW_STOCK, NEAR_EXPIRY, EXPIRED).
    */
