@@ -39,7 +39,7 @@ function ConfirmationForm() {
   const handleRemove = () => {
     removeConfirmedItems(Array.from(selectedLotIds));
     setSelectedLotIds(new Set());
-    setToast({ message: "Items removed successfully." });
+    setToast({ message: "Items removed from confirmation." });
   };
 
   const handleConfirm = async () => {
@@ -77,10 +77,10 @@ function ConfirmationForm() {
   };
 
   return (
-    <div className="w-[900px] h-[650px] bg-white border border-black/70 rounded-lg overflow-hidden flex flex-col relative">
+    <div className="w-full max-w-[900px] min-h-[650px] bg-white border border-black/70 rounded-lg overflow-hidden flex flex-col relative">
       {/* Toast (bottom center) */}
       {toast && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 w-fit max-w-[90%] px-4">
           <Toast
             message={toast.message}
             type={toast.type}
@@ -90,19 +90,28 @@ function ConfirmationForm() {
       )}
 
       {/* Header */}
-      <div className="bg-primary px-6 py-4 shrink-0 flex items-center justify-between">
-        <Heading level={3} size="sm" className="text-white">
+      <div className="bg-primary px-3 py-2 sm:px-6 sm:py-4 shrink-0 flex flex-col sm:flex-row items-center justify-between">
+        <Heading
+          level={3}
+          size="sm"
+          className="text-white mb-2 sm:mb-0 text-center sm:text-left"
+        >
           Confirmation
         </Heading>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto justify-center">
           <Button
             size="xs"
             onClick={handleRemove}
             disabled={selectedLotIds.size === 0}
+            className="w-1/2 sm:w-auto px-2"
           >
             Remove
           </Button>
-          <Button size="xs" onClick={handleConfirm}>
+          <Button
+            size="xs"
+            onClick={handleConfirm}
+            className="w-1/2 sm:w-auto px-2"
+          >
             Confirm
           </Button>
         </div>
@@ -118,30 +127,44 @@ function ConfirmationForm() {
           items.map((item) => (
             <div
               key={item.lotId}
-              className="w-full h-24 bg-white border-t border-border flex items-center px-4 justify-between"
+              className="w-full min-h-24 bg-white border-b border-border flex flex-col sm:flex-row items-start sm:items-center p-3 sm:p-4 justify-between gap-2"
             >
               {/* Left */}
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 w-full">
                 <input
                   type="checkbox"
-                  className="w-5 h-5 mt-1 accent-primary"
+                  className="w-5 h-5 mt-1 accent-primary flex-shrink-0"
                   checked={selectedLotIds.has(item.lotId)}
                   onChange={() => toggleSelection(item.lotId)}
                 />
-                <div className="flex flex-col">
-                  <Heading level={3} size="md" className="font-Work-Sans mb-1">
+                <div className="flex-1 flex flex-col min-w-0">
+                  <Heading
+                    level={3}
+                    size="sm"
+                    className="font-Work-Sans mb-1 truncate"
+                  >
                     {item.name}
                   </Heading>
-                  <div className="text-sm text-black font-Work-Sans flex gap-6">
-                    <span className="w-[130px]">Exp: {item.expDate}</span>
-                    <span className="w-[260px]">ID: {item.lotId}</span>
-                    <span className="w-[80px]">Stock: {item.totalQty}</span>
+                  <div className="text-xs sm:text-sm text-black font-Work-Sans flex flex-wrap gap-1 sm:gap-6">
+                    <span className="block w-full sm:w-[130px] truncate">
+                      Exp: {item.expDate}
+                    </span>
+                    <span
+                      className="block w-[150px] sm:w-[260px] truncate"
+                      title={item.lotId}
+                    >
+                      ID: {item.lotId}
+                    </span>
+
+                    <span className="block w-full sm:w-[80px]">
+                      Stock: {item.totalQty}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Right */}
-              <div className="ml-6">
+              <div className="ml-0 sm:ml-6 w-full sm:w-auto mt-2 sm:mt-0">
                 <NumberStepper
                   initial={item.qtyTaken}
                   min={1}
