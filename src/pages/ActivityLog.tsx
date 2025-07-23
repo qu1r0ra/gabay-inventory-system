@@ -30,6 +30,10 @@ function ActivityLog() {
       .catch((err) => console.error("Failed to fetch activity log:", err));
   }, []);
 
+  useEffect(() => {
+    setPage(0);
+  }, [query, filter, sort]);
+
   const filteredData = rawData
     .filter((row) => {
       switch (filter) {
