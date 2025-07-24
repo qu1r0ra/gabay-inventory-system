@@ -5,7 +5,7 @@
 
 import { assert } from "console";
 import { marked } from "marked";
-import html_to_pdf from "html-pdf-node";
+import PuppeteerHTMLPDF from "puppeteer-html-pdf";
 import { readFileSync, writeFileSync } from "fs";
 
 type TableAlignment = "l" | "c" | "r";
@@ -19,9 +19,13 @@ type TableAlignment = "l" | "c" | "r";
 function tableToMarkdown(
   columnNames: string[],
   data: string[][],
-  alignments?: TableAlignment[]
+  alignments?: TableAlignment[],
+  title?: string
 ): string {
   let out = "";
+  if (title) {
+    out += `# ${title}\n\n`;
+  }
   let headerBorder = "";
 
   if (alignments) {
@@ -130,18 +134,19 @@ function tableToMarkdown(
 async function markdownToPdf(
   markdown: string,
   outputPath?: string
-): Promise<Blob> {
+): Promise<Buffer> {
   // Parse markdown table into rows
   const html = await marked.parse(markdown); // <table>...</table>
   const style = `<style>${readFileSync("table-style.css")}</style>`;
-  const file = { content: html + style };
-  const options = { format: "A4" };
+  const htmlPDF = new PuppeteerHTMLPDF();
+  htmlPDF.setOptions({
+    format: "A4",
+    path: `${outputPath}`,
+  });
 
-  // "Compiling the template with handlebars" appears here
-  const pdf = await html_to_pdf.generatePdf(file, options);
-  if (outputPath) writeFileSync(outputPath, pdf);
-
-  return pdf;
+  // Generate PDF
+  const pdfBuffer = htmlPDF.create(html + style);
+  return pdfBuffer;
 }
 
 /**
@@ -166,11 +171,13 @@ async function main() {
 
   // optional
   const alignments: TableAlignment[] = ["l", "c", "r", "l", "c"];
+  const title: string = "Gabay Inventory Report";
 
-  const out: string = tableToMarkdown(columnNames, data, alignments);
+  const out: string = tableToMarkdown(columnNames, data, alignments, title);
 
   // if output path is provided, file is saved there
-  const pdf: Blob = await markdownToPdf(out, "test.pdf");
+  const pdf: Buffer = await markdownToPdf(out, "test.pdf");
+  console.log(pdf);
 }
 
 /**
