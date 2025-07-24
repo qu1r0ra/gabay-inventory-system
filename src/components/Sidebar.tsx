@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Heading } from "./General/Heading";
 import logo from "../assets/Logo.png";
+import { useAuth } from "../lib/db/db.auth";
 
 export default function Sidebar({
   isOpen,
@@ -9,6 +10,7 @@ export default function Sidebar({
   isOpen: boolean;
   setIsOpen: (val: boolean) => void;
 }) {
+  const { user, isAdmin } = useAuth();
   const sidebarItems = [
     { path: "/dashboard", text: "Dashboard" },
     { path: "/inventory", text: "Inventory" },
@@ -68,26 +70,28 @@ export default function Sidebar({
           </div>
         </div>
 
-        <div className="p-2 flex flex-col mt-2 pl-6">
-          <Heading size="xs" className="text-black mb-2">
-            Admin
-          </Heading>
-          <div className="flex flex-col space-y-2 pl-4">
-            {adminItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `text-border font-Work-Sans ${
-                    isActive ? "text-secondary font-semibold" : ""
-                  }`
-                }
-              >
-                {item.text}
-              </NavLink>
-            ))}
+        {isAdmin && (
+          <div className="p-2 flex flex-col mt-2 pl-6">
+            <Heading size="xs" className="text-black mb-2">
+              Admin
+            </Heading>
+            <div className="flex flex-col space-y-2 pl-4">
+              {adminItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `text-border font-Work-Sans ${
+                      isActive ? "text-secondary font-semibold" : ""
+                    }`
+                  }
+                >
+                  {item.text}
+                </NavLink>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );

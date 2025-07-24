@@ -9,7 +9,10 @@ const supabase = createClient(
 
 interface IAuth {
   user: User | null;
+  isAdmin: boolean;
   loading: boolean;
+  registering: boolean;
+  loggingIn: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   register: (
     username: string,
@@ -32,7 +35,10 @@ export const AuthContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [registering, setRegistering] = useState<boolean>(false);
+  const [loggingIn, setLoggingIn] = useState<boolean>(false);
 
   // Auto checks if user is logged in
   useEffect(() => {
@@ -48,6 +54,16 @@ export const AuthContextProvider = ({
       data: { user },
     } = await supabase.auth.getUser();
     setUser(user);
+
+    if (user) {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      setIsAdmin(data?.is_admin);
+    }
+
     console.log("[AUTH]: updated user.");
     setLoading(false);
   };
@@ -65,30 +81,40 @@ export const AuthContextProvider = ({
     password: string,
     is_admin?: boolean
   ) => {
+    setRegistering(true);
+
     // Just generate a placeholder email because supabase wants an email
     const email = `${username}@gabay.org`;
 
     // Supabase automatically checks password
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          role: is_admin ? "admin" : "user",
-          is_admin,
-        },
-      },
     });
+
+    // Create another record in users table to store isadmin flag
+    if (data?.user) {
+      const { id } = data.user;
+      const { error } = await supabase.from("users").insert({
+        id: id,
+        name: username,
+        is_admin,
+      });
+
+      if (error) console.error("Failed to insert profile:", error.message);
+    }
 
     // Something went wrong
     if (error) {
       alert(error.message);
       console.log(error, error.cause, error.code, error.message, error.name);
+      setRegistering(false);
       return false;
     }
 
     // Update user
     await updateUser();
+    setRegistering(false);
     return true;
   };
 
@@ -100,6 +126,8 @@ export const AuthContextProvider = ({
    * @returns
    */
   const login = async (username: string, password: string) => {
+    setLoggingIn(true);
+
     // Just generate a placeholder email because supabase wants an email
     const email = `${username}@gabay.org`;
 
@@ -112,11 +140,13 @@ export const AuthContextProvider = ({
     // Something went wrong
     if (error) {
       alert(error.message);
+      setLoggingIn(false);
       return false;
     }
 
     // Update user
     await updateUser();
+    setLoggingIn(false);
     return true;
   };
 
@@ -143,8 +173,11 @@ export const AuthContextProvider = ({
     <AuthContext.Provider
       value={{
         user: useMemo<User>(() => user as User, [user]),
+        isAdmin,
         loading,
+        registering,
         register,
+        loggingIn,
         login,
         logout,
       }}
