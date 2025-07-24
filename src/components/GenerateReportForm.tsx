@@ -3,6 +3,7 @@ import Select from "react-select";
 import { Heading } from "./General/Heading";
 import Input from "./General/Input";
 import Button from "./General/Button";
+import { inventoryApi } from "../lib/db/db.api";
 
 const monthOptions = [
   { value: "01", label: "January" },
@@ -28,6 +29,12 @@ const yearOptions = Array.from(
 );
 
 function GenerateReportForm() {
+  const handleGenerateReport = async () => {
+    const month = 7;
+    const year = 2025;
+    const fileName = "test";
+    await inventoryApi.generateReport(month, year, fileName);
+  };
   return (
     <div className="w-full max-w-[500px] min-h-[500px] border bg-white border-black/70 rounded-2xl p-4 sm:p-6 shadow-md">
       <Heading size="lg" className="mb-1">
@@ -64,7 +71,9 @@ function GenerateReportForm() {
           </div>
 
           <div className="flex justify-center mt-30 sm:mt-6">
-            <Button size="xs">Generate</Button>
+            <Button size="xs" onClick={handleGenerateReport}>
+              Generate
+            </Button>
           </div>
         </div>
       </div>

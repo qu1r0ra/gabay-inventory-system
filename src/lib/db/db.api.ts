@@ -6,6 +6,9 @@ import {
   type User,
 } from "./index";
 import { logger } from "../utils/console.js";
+import { Document } from "../pdf";
+import { tableToHtml } from "../table";
+import html2pdf from "html2pdf.js";
 
 export class ApiError extends Error {
   constructor(message: string, public statusCode: number, public code: string) {
@@ -1013,12 +1016,12 @@ export const inventoryApi = {
     return data;
   },
 
-  // TODO: Not finalized. Feel free to revise accordingly.
-  async generateReport(filters: {
-    startDate: string;
-    endDate: string;
+  async getReportData(filters: {
+    startDate: string; // inclusive
+    endDate: string; // exclusive
     type?: "weekly" | "monthly";
   }) {
+    console.log(filters);
     validateDate(filters.startDate, "startDate");
     validateDate(filters.endDate, "endDate");
     if (filters.type !== undefined)
@@ -1031,23 +1034,17 @@ export const inventoryApi = {
       .from("transactions")
       .select(
         `
-        *,
-        item_stocks!inner (
-          item_id,
-          item_qty,
-          expiry_date
+        created_at,
+        users ( email ),
+        type,
+        item_stocks (
+          items (name)
         ),
-        items!item_stocks!inner (
-          name
-        ),
-        users (
-          name,
-          email
-        )
+        item_qty_change
       `
       )
       .gte("created_at", filters.startDate)
-      .lte("created_at", filters.endDate)
+      .lt("created_at", filters.endDate)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1056,7 +1053,166 @@ export const inventoryApi = {
     }
 
     logger.success(`Report generated with ${data?.length || 0} transactions`);
+    console.log(data);
     return data;
+  },
+
+  /**
+   *
+   * @param month
+   * @param year
+   * @param fileName
+   * @returns URL to the created PDF file if sucessful, otherwise throws an error.
+   */
+  async generateReport(month: number, year: number, fileName: string) {
+    // Flatten nested objects into a single level with joined keys
+    function flattenJoin(
+      obj: Record<string, any>,
+      parentKey = "",
+      sep = "_"
+    ): Record<string, any> {
+      return Object.entries(obj).reduce((acc, [key, value]) => {
+        const newKey = parentKey ? `${parentKey}${sep}${key}` : key;
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          Object.assign(acc, flattenJoin(value, newKey, sep));
+        } else {
+          acc[newKey] = value;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+    }
+
+    // Convert JSON array to table format
+    function jsonToTable(jsonArray: Record<string, any>[]): {
+      columnNames: string[];
+      data: string[][];
+    } {
+      if (!jsonArray || jsonArray.length === 0) {
+        return { columnNames: [], data: [] };
+      }
+      // Get all unique keys from all objects
+      const columnNames = Array.from(
+        new Set(jsonArray.flatMap((obj) => Object.keys(obj)))
+      );
+
+      // Build the data matrix
+      const data = jsonArray.map((obj) =>
+        columnNames.map((col) =>
+          obj[col] !== undefined ? String(obj[col]) : ""
+        )
+      );
+
+      return { columnNames, data };
+    }
+
+    // Formatting
+    function formatDataAsDate(data: string[][], index: number) {
+      data.forEach((row) => {
+        if (row[index]) {
+          const date = new Date(row[index]);
+          row[index] = date.toLocaleDateString("en-US");
+        }
+      });
+    }
+
+    function capitalizeWords(str: string): string {
+      const words = str.split("_");
+      const capitalizedWords = words.map((word) => {
+        if (word.length === 0) {
+          return "";
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      });
+      return capitalizedWords.join(" ");
+    }
+
+    logger.info("Generating PDF report");
+
+    // Array of objects
+    let data = (
+      await this.getReportData({
+        startDate: `${year}-${month}-01`,
+        endDate: `${year}-${month + 1}-01`,
+        type: "monthly",
+      })
+    ).map((item) => flattenJoin(item));
+
+    let { columnNames, data: tableData } = jsonToTable(data);
+
+    // Change columnNames here (maybe via a map)
+    columnNames = columnNames.map((name, index) => {
+      switch (name) {
+        case "users_email":
+          return "User Email";
+        case "item_stocks_items_name":
+          return "Item Name";
+        case "item_qty_change":
+          return "Quantity Changed";
+        case "type":
+          return "Transaction Type";
+        case "created_at":
+          formatDataAsDate(tableData, index);
+          return "Transaction Date";
+        case "id":
+          return "Transaction ID";
+        case "lot_id":
+          return "Lot ID";
+        default:
+          return capitalizeWords(name);
+      }
+    });
+
+    // Generate PDF
+    try {
+      const mainPdf = await Document.new(fileName);
+      const monthStr = new Date(year, month - 1).toLocaleString("default", {
+        month: "long",
+      });
+      mainPdf
+        .beginPage()
+        .header("GABAY Transactions Report", {})
+        .header(`for ${monthStr} ${year}`, {
+          size: 3,
+          alignment: "right",
+        })
+        .text(`Generated on ${new Date().toLocaleDateString("en-US")}.`)
+        .text("Add more text if necessary")
+        .text("View the table in the next page.")
+        .endPage();
+
+      const tableHtml = await tableToHtml({
+        columnNames,
+        data: tableData,
+        // title: `GABAY Transactions Report for ${monthStr} ${year}, generated ${new Date().toLocaleDateString("en-US")}`
+      });
+
+      await html2pdf()
+        .set({
+          margin: [20, 20, 20, 20], // Set appropriate margins
+          autoPaging: "text", // Crucial for handling text flow across pages
+          html2canvas: {
+            allowTaint: true,
+            letterRendering: true,
+            logging: false,
+          },
+          jsPDF: { orientation: "landscape" },
+        })
+        .from(tableHtml)
+        .toPdf()
+        .get("pdf")
+        .then(async (tablePdf: { output: (arg0: string) => any }) => {
+          const buffer = tablePdf.output("arraybuffer");
+          await mainPdf.appendDocument(buffer);
+        });
+
+      logger.success("PDF report generated successfully");
+      return mainPdf.save();
+    } catch (error) {
+      logger.error(
+        `Failed to generate PDF report: ${(error as Error).message}`
+      );
+      throw error;
+    }
   },
 
   async getNotifications(filter: NotificationFilter = {}) {
