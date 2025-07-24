@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import ActivityLogTable from "../components/ActivityLogTable";
+import ActivityLogTable from "../components/ActivityLog/ActivityLogTable";
+import ActivityLogCard from "../components/ActivityLog/ActivityLogCard";
 import { useSearch } from "../contexts/SearchContext";
-import Button from "../components/Button";
+import Button from "../components/General/Button";
+import { inventoryApi } from "../lib/db/db.api";
 
 const columns = [
   { key: "actor", label: "User Name" },
@@ -12,7 +14,7 @@ const columns = [
   { key: "type", label: "Action" },
 ];
 
-const ROWS_PER_PAGE = 14;
+const ROWS_PER_PAGE = 9;
 
 function ActivityLog() {
   const { query } = useSearch();
@@ -22,48 +24,46 @@ function ActivityLog() {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    const generateAction = () => {
-      const formats = [
-        () => `+${Math.floor(Math.random() * 50) + 1}`,
-        () => `-${Math.floor(Math.random() * 50) + 1}`,
-        () => "+",
-        () => "-",
-      ];
-      const randomFormat = formats[Math.floor(Math.random() * formats.length)];
-      return randomFormat();
-    };
-
-    const dummy = Array.from({ length: 21 }).map((_, idx) => {
-      const dateObj = new Date(2025, 6, (idx % 28) + 1, 9 + (idx % 8), 5 * idx);
-      const iso = dateObj.toISOString();
-      return {
-        actor: `User ${idx + 1}`,
-        item: `Item ${idx + 1}`,
-        lotId: `LOT${1001 + idx}`,
-        date: iso.split("T")[0],
-        time: iso.split("T")[1].slice(0, 5),
-        type: generateAction(),
-      };
-    });
-
-    setRawData(dummy);
+    inventoryApi
+      .getActivityLogEntries()
+      .then(setRawData)
+      .catch((err) => console.error("Failed to fetch activity log:", err));
   }, []);
 
-  // Filtering, Sorting, Searching
+  useEffect(() => {
+    setPage(0);
+  }, [query, filter, sort]);
+
   const filteredData = rawData
     .filter((row) => {
-      if (filter === "added") return row.type.startsWith("+");
-      if (filter === "removed") return row.type.startsWith("-");
-      return true;
+      switch (filter) {
+        case "added":
+          return row.type.startsWith("+");
+        case "removed":
+          return row.type.startsWith("-");
+        case "corrections":
+          return row.type.startsWith("=");
+        case "deleted":
+          return row.type === "X";
+        default:
+          return true;
+      }
     })
     .filter((row) =>
       query.trim()
-        ? Object.values(row).join(" ").toLowerCase().includes(query.toLowerCase())
+        ? Object.values(row)
+            .join(" ")
+            .toLowerCase()
+            .includes(query.toLowerCase())
         : true
     )
     .sort((a, b) => {
-      if (sort === "date_asc") return new Date(a.date) > new Date(b.date) ? 1 : -1;
-      if (sort === "date_desc") return new Date(a.date) < new Date(b.date) ? 1 : -1;
+      const dateTimeA = new Date(`${a.date}T${a.time}`);
+      const dateTimeB = new Date(`${b.date}T${b.time}`);
+
+      if (sort === "date_asc") return dateTimeA.getTime() - dateTimeB.getTime();
+      if (sort === "date_desc")
+        return dateTimeB.getTime() - dateTimeA.getTime();
       if (sort === "name") return a.item.localeCompare(b.item);
       return 0;
     });
@@ -77,26 +77,29 @@ function ActivityLog() {
     visibleRows.length < ROWS_PER_PAGE
       ? [
           ...visibleRows,
-          ...Array.from({ length: ROWS_PER_PAGE - visibleRows.length }).map(() => ({
-            actor: "",
-            item: "",
-            lotId: "",
-            date: "",
-            time: "",
-            type: "",
-          })),
+          ...Array.from({ length: ROWS_PER_PAGE - visibleRows.length }).map(
+            () => ({
+              actor: "",
+              item: "",
+              lotId: "",
+              date: "",
+              time: "",
+              type: "",
+            })
+          ),
         ]
       : visibleRows;
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 gap-4">
-      <div className="w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
+    <div className="flex flex-col items-center justify-start min-h-screen mt-3 p-4 gap-4">
+      {/* Container */}
+      <div className="w-full max-w-[1000px] border border-black/70 rounded-md overflow-hidden bg-white">
         {/* Header with dropdowns */}
-        <div className="h-[70px] bg-primary px-4 py-3 flex justify-between items-center">
+        <div className="bg-primary px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex gap-2" />
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-2 md:flex-row md:gap-4">
             <select
-              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              className="w-full md:w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
               value={filter}
               onChange={(e) => {
                 setFilter(e.target.value);
@@ -106,9 +109,11 @@ function ActivityLog() {
               <option value="all">All</option>
               <option value="added">Added (+)</option>
               <option value="removed">Removed (-)</option>
+              <option value="corrections">Corrections (=)</option>
+              <option value="deleted">Deleted (X)</option>
             </select>
             <select
-              className="w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
+              className="w-full md:w-[200px] px-2 py-1 rounded text-sm text-black bg-white border border-gray-300"
               value={sort}
               onChange={(e) => {
                 setSort(e.target.value);
@@ -122,18 +127,31 @@ function ActivityLog() {
           </div>
         </div>
 
-        {/* Table */}
-        <ActivityLogTable columns={columns} data={paddedData} />
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <ActivityLogTable columns={columns} data={paddedData} />
+        </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden w-full max-w-[1000px] mx-auto flex flex-col gap-4 px-4">
+        {visibleRows.map((entry, idx) => (
+          <ActivityLogCard key={idx} entry={entry} />
+        ))}
       </div>
 
       {/* Pagination */}
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-6">
-          <Button size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))}>
+          <Button
+            size="xs"
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(p - 1, 0))}
+          >
             Back
           </Button>
           <Button
-            size="sm"
+            size="xs"
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
           >

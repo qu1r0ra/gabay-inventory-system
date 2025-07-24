@@ -1,6 +1,4 @@
-import { Document } from '../lib/pdf';
-import Button from '../components/Button'
-import { useRef, useState } from 'react';
+import GenerateReportForm from "../components/GenerateReportForm";
 
 function GenerateReport() {
   const linkRef = useRef<HTMLAnchorElement>(null);
@@ -42,17 +40,9 @@ function GenerateReport() {
   }
 
   return (
-    <>
-      <p>GenerateReport</p>
-      <Button onClick={() => generatePDF()}>
-        Create PDF
-      </Button>
-      {/* {isCreated && <a ref={linkRef}> 
-        <Button disabled={isCreating} className='w-full'>
-          {isCreating ? "Generating Report..." : "Download PDF here"}
-        </Button>
-      </a>} */}
-    </>
+    <div className="flex justify-center mt-4 p-6">
+      <GenerateReportForm />
+    </div>
   );
 }
 

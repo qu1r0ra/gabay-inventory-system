@@ -11,11 +11,13 @@ import ActivityLog from "./pages/ActivityLog";
 import AddItem from "./pages/AddItem";
 import CheckOut from "./pages/CheckOut";
 import Notifications from "./pages/Notifications";
-import EditItem from "./pages/EditItem";  
-import DeleteItem from "./pages/DeleteItem";  
+import NotificationDetails from "./pages/NotificationDetails";
+import EditItem from "./pages/EditItem";
+import DeleteItem from "./pages/DeleteItem";
 import GenerateReport from "./pages/GenerateReport";
 import { AuthContextProvider } from "./lib/db/db.auth";
 import { SearchProvider } from "./contexts/SearchContext";
+import { ItemSelectionProvider } from "./contexts/ItemSelectionContext";
 
 const router = createBrowserRouter([
   {
@@ -55,12 +57,16 @@ const router = createBrowserRouter([
         element: <Notifications />,
       },
       {
+        path: "/notifications/:id",
+        element: <NotificationDetails />,
+      },
+      {
         path: "/edit-item",
-        element: <EditItem />,  
+        element: <EditItem />,
       },
       {
         path: "/delete-item",
-        element: <DeleteItem />,  
+        element: <DeleteItem />,
       },
       {
         path: "/generate-report",
@@ -74,7 +80,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthContextProvider>
       <SearchProvider>
-        <RouterProvider router={router} />
+        <ItemSelectionProvider>
+          <RouterProvider router={router} />
+        </ItemSelectionProvider>
       </SearchProvider>
     </AuthContextProvider>
   </StrictMode>

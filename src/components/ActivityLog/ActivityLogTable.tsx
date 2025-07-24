@@ -7,7 +7,7 @@ type Column = {
 
 type TableProps = {
   columns: Column[];
-  data: Record<string, React.ReactNode>[];
+  data: Record<string, React.ReactNode>[]; // mixed types, string or JSX
 };
 
 function ActivityLogTable({ columns, data }: TableProps) {
@@ -39,6 +39,7 @@ function ActivityLogTable({ columns, data }: TableProps) {
             ))}
           </tr>
         </thead>
+
         {/* Table Body */}
         <tbody>
           {data.map((row, idx) => {
@@ -49,18 +50,35 @@ function ActivityLogTable({ columns, data }: TableProps) {
                 key={idx}
                 className="bg-white h-[50px] text-black font-Work-Sans text-sm border-b border-border"
               >
-                {columns.map((col, index) => (
-                  <td
-                    key={col.key}
-                    className={`align-middle ${
-                      index !== columns.length - 1
-                        ? "border-r border-border"
-                        : ""
-                    }`}
-                  >
-                    {isEmpty ? null : row[col.key]}
-                  </td>
-                ))}
+                {columns.map((col, index) => {
+                  const isLotId = col.key === "lotId";
+                  const cellContent = row[col.key];
+
+                  return (
+                    <td
+                      key={col.key}
+                      className={`align-middle px-1 ${
+                        index !== columns.length - 1
+                          ? "border-r border-border"
+                          : ""
+                      }`}
+                      title={
+                        isLotId && typeof cellContent === "string"
+                          ? cellContent
+                          : undefined
+                      }
+                    >
+                      {isEmpty ? null : isLotId &&
+                        typeof cellContent === "string" ? (
+                        <span className="truncate block max-w-full">
+                          {cellContent}
+                        </span>
+                      ) : (
+                        cellContent
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}

@@ -1,5 +1,6 @@
 import React from "react";
-import NumberStepper from "./NumberStepper";
+import NumberStepper from "../General/NumberStepper";
+import { useItemSelection } from "../../contexts/ItemSelectionContext";
 
 type Column = {
   key: string;
@@ -8,24 +9,24 @@ type Column = {
 
 type TableProps = {
   columns: Column[];
-  data: Record<string, React.ReactNode>[];
+  data: Record<string, React.ReactNode>[]; // data must contain keys like lotId, name, expDate, etc.
 };
 
 function InventoryTable({ columns, data }: TableProps) {
+  const { selectedItems, updateItemQty } = useItemSelection();
+
   return (
     <div className="w-[1000px] rounded-md overflow-hidden">
       <table className="w-full table-fixed border-collapse text-center">
-        {/* Column widths */}
         <colgroup>
-          <col className="w-[220px]" /> {/* Item Name */}
-          <col className="w-[180px]" /> {/* Lot ID */}
+          <col className="w-[220px]" />
+          <col className="w-[180px]" />
           <col className="w-[75px]" />
           <col className="w-[200px]" />
           <col className="w-[200px]" />
           <col className="w-[125px]" />
         </colgroup>
 
-        {/* Table Head */}
         <thead>
           <tr className="bg-white h-[50px] text-black">
             {columns.map((col, index) => (
@@ -41,10 +42,11 @@ function InventoryTable({ columns, data }: TableProps) {
           </tr>
         </thead>
 
-        {/* Table Body */}
         <tbody>
           {data.map((row, idx) => {
             const isEmpty = Object.values(row).every((val) => val === "");
+            const lotId = row["lotId"] as string;
+            const initialQty = selectedItems[lotId]?.qtyTaken || 0;
 
             return (
               <tr
@@ -64,12 +66,27 @@ function InventoryTable({ columns, data }: TableProps) {
                       isEmpty ? null : (
                         <div className="flex justify-center items-center">
                           <NumberStepper
+                            key={lotId}
                             min={0}
                             max={999}
-                            initial={0}
-                            onChange={(val) =>
-                              console.log(`Row ${idx} changed to:`, val)
-                            }
+                            initial={initialQty}
+                            onChange={(val) => {
+                              const name = row["name"] as string;
+                              const expDate = row["expDate"] as string;
+                              const lastModified = row[
+                                "lastModified"
+                              ] as string;
+                              const totalQty = row["qty"] as number;
+
+                              updateItemQty(lotId, {
+                                lotId,
+                                name,
+                                expDate,
+                                lastModified,
+                                totalQty,
+                                qtyTaken: val,
+                              });
+                            }}
                           />
                         </div>
                       )
