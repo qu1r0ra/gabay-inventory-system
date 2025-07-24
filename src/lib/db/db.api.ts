@@ -1062,10 +1062,9 @@ export const inventoryApi = {
    *
    * @param month
    * @param year
-   * @param fileName
    * @returns URL to the created PDF file if sucessful, otherwise throws an error.
    */
-  async generateReport(month: number, year: number, fileName: string) {
+  async generateReport(month: number, year: number) {
     // Flatten nested objects into a single level with joined keys
     function flattenJoin(
       obj: Record<string, any>,
@@ -1165,7 +1164,7 @@ export const inventoryApi = {
 
     // Generate PDF
     try {
-      const mainPdf = await Document.new(fileName);
+      const mainPdf = await Document.new("GABAY REPORT");
       const monthStr = new Date(year, month - 1).toLocaleString("default", {
         month: "long",
       });

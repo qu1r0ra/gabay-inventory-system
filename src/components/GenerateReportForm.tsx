@@ -37,13 +37,12 @@ const yearOptions: Option[] = Array.from(
 function GenerateReportForm() {
   const [selectedMonth, setSelectedMonth] = useState<Option | null>(null);
   const [selectedYear, setSelectedYear] = useState<Option | null>(null);
-  const [fileName, setFileName] = useState("");
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
   const [showToast, setShowToast] = useState(false);
 
   const handleGenerateReport = async () => {
-    if (!selectedMonth || !selectedYear || !fileName) {
+    if (!selectedMonth || !selectedYear) {
       setToastType("error");
       setToastMsg("Please fill in all fields.");
       setShowToast(true);
@@ -54,11 +53,7 @@ function GenerateReportForm() {
     const yearNum = parseInt(selectedYear.value, 10);
 
     try {
-      const pdfUrl = await inventoryApi.generateReport(
-        monthNum,
-        yearNum,
-        fileName
-      );
+      const pdfUrl = await inventoryApi.generateReport(monthNum, yearNum);
       setToastType("success");
       setToastMsg("Report generated successfully.");
       setShowToast(true);
