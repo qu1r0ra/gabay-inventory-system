@@ -1038,7 +1038,8 @@ export const inventoryApi = {
         users ( email ),
         type,
         item_stocks (
-          items (name)
+          items (name),
+          lot_id
         ),
         item_qty_change
       `
@@ -1155,7 +1156,7 @@ export const inventoryApi = {
           return "Transaction Date";
         case "id":
           return "Transaction ID";
-        case "lot_id":
+        case "item_stocks_lot_id":
           return "Lot ID";
         default:
           return capitalizeWords(name);
@@ -1196,6 +1197,7 @@ export const inventoryApi = {
             logging: false,
           },
           jsPDF: { orientation: "landscape" },
+          pagebreak: { mode: ["avoid-all", "css", "legacy"] },
         })
         .from(tableHtml)
         .toPdf()
