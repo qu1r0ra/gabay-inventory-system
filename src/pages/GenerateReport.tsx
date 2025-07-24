@@ -1,4 +1,6 @@
 import GenerateReportForm from "../components/GenerateReportForm";
+import { Document } from '../lib/pdf';
+import { useRef, useState } from 'react';
 
 function GenerateReport() {
   const linkRef = useRef<HTMLAnchorElement>(null);
