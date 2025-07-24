@@ -155,10 +155,6 @@ async function markdownToHtml(markdown: string): Promise<string> {
   const html = await marked.parse(markdown); // <table>...</table>
   const style = `
   <style>
-    body {
-      font-family: Helvetica, sans-serif;
-    }
-
     table {
       border-collapse: collapse;
       width: 100%;
@@ -172,17 +168,6 @@ async function markdownToHtml(markdown: string): Promise<string> {
     th {
       font-weight: bold;
     }
-
-    h1 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      font-weight: bold;
-    }
-
-    h2 {
-      margin: 20px 0;
-    }
-
   </style>`;
   const content = html + style;
 
