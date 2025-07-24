@@ -1,15 +1,33 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/Logo.png";
 import Input from "../components/General/Input";
 import Button from "../components/General/Button";
 import { Heading } from "../components/General/Heading";
+import { useAuth } from "../lib/db/db.auth";
 
 function SignUp() {
+  const { register, registering } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const navigate = useNavigate();
+
+  const handleSignUp = async () => {
+    if (!username.trim()) return alert("Username is required.");
+    if (!password.trim() || password.trim().length < 6)
+      return alert("Password is too short (min. 6 characters).");
+    if (password.trim() !== confirmPassword.trim())
+      return alert("Password does not match confirmation.");
+    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email.trim()))
+      return alert("Email is not valid.");
+
+    await register(username, password, false).then(() => {
+      alert("Successfully registered account!");
+      navigate("/login");
+    });
+  };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4">
@@ -65,8 +83,14 @@ function SignUp() {
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
 
-          <Button type="submit" size="sm" className="w-[550px] max-w-full">
-            Sign Up
+          <Button
+            type="button"
+            size="sm"
+            className="w-[550px] max-w-full"
+            disabled={registering}
+            onClick={handleSignUp}
+          >
+            {registering ? "Signing up..." : "Sign Up"}
           </Button>
         </form>
 

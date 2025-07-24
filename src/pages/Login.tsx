@@ -8,7 +8,7 @@ import { useAuth } from "../lib/db/db.auth";
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loggingIn } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -67,8 +67,13 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <Button type="submit" size="sm" className="w-[550px] max-w-full">
-            Login
+          <Button
+            type="submit"
+            size="sm"
+            className="w-[550px] max-w-full"
+            disabled={loggingIn}
+          >
+            {loggingIn ? "Logging in..." : "Login"}
           </Button>
         </form>
 
