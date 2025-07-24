@@ -131,10 +131,12 @@ export const AuthContextProvider = ({
     const email = `${username}@gabay.org`;
 
     // Supabase automatically checks password
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, ...rest } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    console.log('rest', rest)
 
     // Something went wrong
     if (error) {
