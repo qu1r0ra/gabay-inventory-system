@@ -1,36 +1,15 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import logo from "../assets/Logo.png";
 import Input from "../components/General/Input";
 import Button from "../components/General/Button";
 import { Heading } from "../components/General/Heading";
-import { useAuth } from "../lib/db/db.auth";
 
-function Login() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-
+function SignUp() {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const handleLogin: React.FormEventHandler<HTMLFormElement> = async (
-    event
-  ) => {
-    event.preventDefault();
-
-    if (username.trim() === "" || password.trim() === "") {
-      alert("Please enter both username and password to log in.");
-      return;
-    }
-
-    const success = await login(username, password);
-    if (!success) {
-      alert("Login failed. Please check your credentials.");
-      return;
-    }
-
-    navigate("/dashboard");
-  };
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4">
@@ -42,10 +21,7 @@ function Login() {
           </Heading>
         </div>
 
-        <form
-          onSubmit={handleLogin}
-          className="flex flex-col items-center justify-center gap-10 mt-8 w-full"
-        >
+        <form className="flex flex-col items-center justify-center gap-6 mt-8 w-full">
           <Input
             id="username"
             placeholder="Username"
@@ -54,6 +30,17 @@ function Login() {
             inputClassName="w-full h-full border-border bg-main"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+          />
+
+          <Input
+            id="email"
+            type="email"
+            placeholder="Email"
+            size="custom"
+            className="w-[550px] max-w-full h-12"
+            inputClassName="w-full h-full border-border bg-main"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
           <Input
@@ -67,19 +54,30 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
+          <Input
+            id="confirm-password"
+            type="password"
+            placeholder="Confirm Password"
+            size="custom"
+            className="w-[550px] max-w-full h-12"
+            inputClassName="w-full h-full border-border bg-main"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+
           <Button type="submit" size="sm" className="w-[550px] max-w-full">
-            Login
+            Sign Up
           </Button>
         </form>
 
         <div className="mt-8">
           <p className="text-sm font-Work-Sans text-center">
-            Don&apos;t have an account?{" "}
+            Already have an account?{" "}
             <Link
-              to="/sign-up"
+              to="/login"
               className="text-primary hover:underline cursor-pointer"
             >
-              Sign up.
+              Log in.
             </Link>
           </p>
         </div>
@@ -88,4 +86,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default SignUp;

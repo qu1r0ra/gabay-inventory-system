@@ -24,7 +24,7 @@ const sizeClasses = {
 
   return (
     <Tag
-      className={`${sizeClasses[size]} font-bold font-Poppins text-white ${className}`}
+      className={`${sizeClasses[size]} font-medium font-Poppins ${className}`}
     >
       {children}
     </Tag>

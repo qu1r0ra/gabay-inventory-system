@@ -1,11 +1,11 @@
 import ItemForm from "../components/ItemForm";
 
-function AddItem() {
+function DeleteItem() {
   return (
     <div className="flex mt-8 mx-2 min-h-screen flex-col items-center">
-      <ItemForm mode="add" />
+      <ItemForm mode="delete" />
     </div>
   );
 }
 
-export default AddItem;
+export default DeleteItem;

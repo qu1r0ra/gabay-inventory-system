@@ -1,41 +1,94 @@
-import { NavLink } from 'react-router-dom';
-import { Heading } from './Heading';
+import { NavLink } from "react-router-dom";
+import { Heading } from "./General/Heading";
+import logo from "../assets/Logo.png";
 
-import logo from '../assets/Logo.png';
+export default function Sidebar({
+  isOpen,
+  setIsOpen,
+}: {
+  isOpen: boolean;
+  setIsOpen: (val: boolean) => void;
+}) {
+  const sidebarItems = [
+    { path: "/dashboard", text: "Dashboard" },
+    { path: "/inventory", text: "Inventory" },
+    { path: "/activity-log", text: "Activity Log" },
+    { path: "/add-item", text: "Add Item" },
+    { path: "/check-out", text: "Confirmation" },
+  ];
 
-function Sidebar() {
-    const sidebarItems = [
-        { path: "/dashboard", text: "Dashboard" },
-        { path: "/inventory", text: "Inventory" },
-        { path: "/activity-log", text: "Activity Log" },
-        { path: "/add-item", text: "Add Item" },
-        { path: "/check-out", text: "Confirmation" },
-        { path: "/generate-report", text: "Generate Report" },
-    ];
+  const adminItems = [
+    { path: "/notifications", text: "Notifications" },
+    { path: "/edit-item", text: "Edit Item" },
+    { path: "/delete-item", text: "Delete Item" },
+    { path: "/generate-report", text: "Generate Report" },
+  ];
 
-    return (
-        <div className="w-0 md:w-[250px] lg:w-[350px] h-screen bg-primary overflow-y-auto overflow-x-hidden flex flex-col transition-all duration-300">
-            <Heading size="3xl" className={"mt-4 text-left ml-3"}>GABAY</Heading>
-            <Heading level={2} size="xs" className={"font-Work-Sans text-left mt-8 ml-4 mb-1 font-normal"}>Overview</Heading>
+  return (
+    <>
+      {/* Dim background on mobile when sidebar is open */}
+      <div
+        className={`fixed inset-0 z-30 bg-black/10 md:hidden transition-opacity duration-200 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setIsOpen(false)}
+      />
 
-            {sidebarItems.map((item) => (
-                <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                        `font-Poppins font-bold mt-2.5 mb-2.5 text-left ml-12
-                        text-sm sm:text-md md:text-lg lg:text-xl
-                        hover:scale-105 transition-transform duration-200 ease-in-out origin-left
-                        ${isActive ? 'text-accent' : 'text-white'}`
-                    }
-                >
-                    {item.text}
-                </NavLink>
-            ))}
-
-            <img src={logo} className="w-[135px] h-[135px] self-center mt-auto mb-4"></img>
+      {/* Sidebar panel */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[250px] bg-white border-r border-border shadow-md transform transition-transform duration-200 ease-in-out
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 md:static md:block`}
+      >
+        <div className="h-[90px] border-b border-border flex items-center justify-center gap-3">
+          <img src={logo} alt="Logo" className="w-12 h-12" />
+          <Heading size="xl" className="text-black">
+            GABAY
+          </Heading>
         </div>
-    );
-}
 
-export default Sidebar;
+        <div className="p-2 flex flex-col mt-2 pl-6">
+          <Heading size="xs" className="text-black mb-2">
+            Menu
+          </Heading>
+          <div className="flex flex-col space-y-2 pl-4">
+            {sidebarItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `text-border font-Work-Sans ${
+                    isActive ? "text-secondary font-semibold" : ""
+                  }`
+                }
+              >
+                {item.text}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-2 flex flex-col mt-2 pl-6">
+          <Heading size="xs" className="text-black mb-2">
+            Admin
+          </Heading>
+          <div className="flex flex-col space-y-2 pl-4">
+            {adminItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `text-border font-Work-Sans ${
+                    isActive ? "text-secondary font-semibold" : ""
+                  }`
+                }
+              >
+                {item.text}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
