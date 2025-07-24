@@ -5,6 +5,7 @@ import Input from "../components/General/Input";
 import Button from "../components/General/Button";
 import { Heading } from "../components/General/Heading";
 import { useAuth } from "../lib/db/db.auth";
+import Toast from "../components/General/Toast"; // adjust import path if needed
 
 function SignUp() {
   const { register, registering } = useAuth();
@@ -14,24 +15,42 @@ function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleSignUp = async () => {
-    if (!username.trim()) return alert("Username is required.");
-    if (!password.trim() || password.trim().length < 6)
-      return alert("Password is too short (min. 6 characters).");
-    if (password.trim() !== confirmPassword.trim())
-      return alert("Password does not match confirmation.");
-    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email.trim()))
-      return alert("Email is not valid.");
+  // Toast state
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+  const [showToast, setShowToast] = useState(false);
 
-    await register(username, password, false).then(() => {
-      alert("Successfully registered account!");
-      navigate("/login");
-    });
+  const triggerToast = (
+    message: string,
+    type: "success" | "error" = "success"
+  ) => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+  };
+
+  const handleSignUp = async () => {
+    if (!username.trim()) return triggerToast("Username is required.", "error");
+    if (!password.trim() || password.trim().length < 6)
+      return triggerToast(
+        "Password is too short (min. 6 characters).",
+        "error"
+      );
+    if (password.trim() !== confirmPassword.trim())
+      return triggerToast("Password does not match confirmation.", "error");
+
+    try {
+      await register(username, password, false);
+      triggerToast("Successfully registered account!", "success");
+      setTimeout(() => navigate("/login"), 1500); // delay navigation to let toast show
+    } catch (err: any) {
+      triggerToast("Registration failed. Please try again.", "error");
+    }
   };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4">
-      <div className="w-[1000px] h-[600px] max-w-full border border-border rounded-lg shadow-lg flex flex-col items-center justify-center px-6 md:px-12 bg-white">
+      <div className="relative w-[1000px] h-[600px] max-w-full border border-border rounded-lg shadow-lg flex flex-col items-center justify-center px-6 md:px-12 bg-white">
         <div className="flex items-center justify-center gap-3">
           <img src={logo} alt="Logo" className="w-12 h-12" />
           <Heading size="xl" className="text-black">
@@ -48,17 +67,6 @@ function SignUp() {
             inputClassName="w-full h-full border-border bg-main"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-          />
-
-          <Input
-            id="email"
-            type="email"
-            placeholder="Email"
-            size="custom"
-            className="w-[550px] max-w-full h-12"
-            inputClassName="w-full h-full border-border bg-main"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
           />
 
           <Input
@@ -105,6 +113,17 @@ function SignUp() {
             </Link>
           </p>
         </div>
+
+        {/* Toast at bottom */}
+        {showToast && (
+          <div className="absolute bottom-6">
+            <Toast
+              message={toastMessage}
+              type={toastType}
+              onClose={() => setShowToast(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

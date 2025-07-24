@@ -106,7 +106,6 @@ export const AuthContextProvider = ({
 
     // Something went wrong
     if (error) {
-      alert(error.message);
       console.log(error, error.cause, error.code, error.message, error.name);
       setRegistering(false);
       return false;
@@ -139,7 +138,6 @@ export const AuthContextProvider = ({
 
     // Something went wrong
     if (error) {
-      alert(error.message);
       setLoggingIn(false);
       return false;
     }
@@ -160,7 +158,6 @@ export const AuthContextProvider = ({
 
     // Something went wrong
     if (error) {
-      alert(error.message);
       return false;
     }
 

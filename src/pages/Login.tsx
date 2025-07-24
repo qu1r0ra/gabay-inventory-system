@@ -5,6 +5,7 @@ import Input from "../components/General/Input";
 import Button from "../components/General/Button";
 import { Heading } from "../components/General/Heading";
 import { useAuth } from "../lib/db/db.auth";
+import Toast from "../components/General/Toast"; // Adjust path if needed
 
 function Login() {
   const navigate = useNavigate();
@@ -13,28 +14,46 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  // Toast state
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+  const [showToast, setShowToast] = useState(false);
+
+  const triggerToast = (
+    message: string,
+    type: "success" | "error" = "success"
+  ) => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+  };
+
   const handleLogin: React.FormEventHandler<HTMLFormElement> = async (
     event
   ) => {
     event.preventDefault();
 
     if (username.trim() === "" || password.trim() === "") {
-      alert("Please enter both username and password to log in.");
+      triggerToast(
+        "Please enter both username and password to log in.",
+        "error"
+      );
       return;
     }
 
     const success = await login(username, password);
     if (!success) {
-      alert("Login failed. Please check your credentials.");
+      triggerToast("Login failed. Please check your credentials.", "error");
       return;
     }
 
-    navigate("/dashboard");
+    triggerToast("Login successful!", "success");
+    setTimeout(() => navigate("/dashboard"), 1500);
   };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4">
-      <div className="w-[1000px] h-[600px] max-w-full border border-border rounded-lg shadow-lg flex flex-col items-center justify-center px-6 md:px-12 bg-white">
+      <div className="relative w-[1000px] h-[600px] max-w-full border border-border rounded-lg shadow-lg flex flex-col items-center justify-center px-6 md:px-12 bg-white">
         <div className="flex items-center justify-center gap-3">
           <img src={logo} alt="Logo" className="w-12 h-12" />
           <Heading size="xl" className="text-black">
@@ -88,6 +107,17 @@ function Login() {
             </Link>
           </p>
         </div>
+
+        {/* Toast at bottom */}
+        {showToast && (
+          <div className="absolute bottom-6">
+            <Toast
+              message={toastMessage}
+              type={toastType}
+              onClose={() => setShowToast(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
