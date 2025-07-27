@@ -83,38 +83,63 @@ export const AuthContextProvider = ({
   ) => {
     setRegistering(true);
 
-    // Just generate a placeholder email because supabase wants an email
-    const email = `${username}@gabay.org`;
+    try {
+      // Check if username already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from("users")
+        .select("name")
+        .eq("name", username)
+        .single();
 
-    // Supabase automatically checks password
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+      if (checkError) {
+        if (checkError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is expected for new usernames
+          console.error("Error checking username:", checkError.message);
+          setRegistering(false);
+          return false;
+        }
+        // PGRST116 means no user found, which is good
+      }
 
-    // Create another record in users table to store isadmin flag
-    if (data?.user) {
-      const { id } = data.user;
-      const { error } = await supabase.from("users").insert({
-        id: id,
-        name: username,
-        is_admin,
+      if (existingUser) {
+        setRegistering(false);
+        return false;
+      }
+
+      // Just generate a placeholder email because supabase wants an email
+      const email = `${username}@gabay.org`;
+
+      // Supabase automatically checks password
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: username,
+            is_admin: is_admin
+          }
+        }
       });
 
-      if (error) console.error("Failed to insert profile:", error.message);
-    }
+      // Something went wrong with auth
+      if (error) {
+        console.log(error, error.cause, error.code, error.message, error.name);
+        setRegistering(false);
+        return false;
+      }
 
-    // Something went wrong
-    if (error) {
-      console.log(error, error.cause, error.code, error.message, error.name);
+      // Let the database trigger handle the user creation
+      // No manual insert needed
+
+      // Update user
+      await updateUser();
+      setRegistering(false);
+      return true;
+    } catch (error) {
+      console.error("Registration error:", error);
       setRegistering(false);
       return false;
     }
-
-    // Update user
-    await updateUser();
-    setRegistering(false);
-    return true;
   };
 
   /**
@@ -127,27 +152,33 @@ export const AuthContextProvider = ({
   const login = async (username: string, password: string) => {
     setLoggingIn(true);
 
-    // Just generate a placeholder email because supabase wants an email
-    const email = `${username}@gabay.org`;
+    try {
+      // Just generate a placeholder email because supabase wants an email
+      const email = `${username}@gabay.org`;
 
-    // Supabase automatically checks password
-    const { error, ...rest } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      // Supabase automatically checks password
+      const { error, ...rest } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    console.log('rest', rest)
+      console.log('rest', rest)
 
-    // Something went wrong
-    if (error) {
+      // Something went wrong
+      if (error) {
+        setLoggingIn(false);
+        return false;
+      }
+
+      // Update user
+      await updateUser();
+      setLoggingIn(false);
+      return true;
+    } catch (error) {
+      console.error("Login error:", error);
       setLoggingIn(false);
       return false;
     }
-
-    // Update user
-    await updateUser();
-    setLoggingIn(false);
-    return true;
   };
 
   /**
