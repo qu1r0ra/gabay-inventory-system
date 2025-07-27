@@ -31,18 +31,26 @@ function SignUp() {
 
   const handleSignUp = async () => {
     if (!username.trim()) return triggerToast("Username is required.", "error");
-    if (!password.trim() || password.trim().length < 6)
+    if (username.trim().length < 3) return triggerToast("Username must be at least 3 characters long.", "error");
+    if (!password.trim()) return triggerToast("Password is required.", "error");
+    if (password.trim().length < 6)
       return triggerToast(
         "Password is too short (min. 6 characters).",
         "error"
       );
+    if (!confirmPassword.trim())
+      return triggerToast("Confirm Password is required.", "error");
     if (password.trim() !== confirmPassword.trim())
       return triggerToast("Password does not match confirmation.", "error");
 
     try {
-      await register(username, password, false);
-      triggerToast("Successfully registered account!", "success");
-      setTimeout(() => navigate("/login"), 1500); // delay navigation to let toast show
+      const success = await register(username, password, false);
+      if (success) {
+        triggerToast("Successfully registered account!", "success");
+        setTimeout(() => navigate("/login"), 1500); // delay navigation to let toast show
+      } else {
+        triggerToast("Username already exists. Please choose a different username.", "error");
+      }
     } catch (err: any) {
       triggerToast("Registration failed. Please try again.", "error");
     }
