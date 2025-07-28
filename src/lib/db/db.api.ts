@@ -1346,7 +1346,7 @@ export const inventoryApi = {
     data?.forEach((t: any) => {
       if (t.type === "DEPOSIT") itemsAdded += t.item_qty_change;
       if (t.type === "DISTRIBUTE" || t.type === "DISPOSE")
-        itemsTaken += Math.abs(t.item_qty_change); // 👈 FIX HERE
+        itemsTaken += Math.abs(t.item_qty_change);
     });
 
     return { itemsAdded, itemsTaken };
