@@ -34,7 +34,13 @@ function Header({ setSidebarOpen }: HeaderProps) {
             Welcome Back!
           </Heading>
           <Heading size="sm" className="text-black">
-            {user?.email?.split("@")[0]}
+            {user?.email?.split("@")[0]
+              .split(/[\s._-]+/)
+              .map(
+                (word) =>
+                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+              )
+              .join(" ")}
           </Heading>
         </div>
       </div>
