@@ -1035,7 +1035,7 @@ export const inventoryApi = {
       .select(
         `
         created_at,
-        users ( email ),
+        users ( name ),
         type,
         item_stocks (
           items (name),
@@ -1144,6 +1144,8 @@ export const inventoryApi = {
       switch (name) {
         case "users_email":
           return "User Email";
+        case "users_name":
+          return "User Name";
         case "item_stocks_items_name":
           return "Item Name";
         case "item_qty_change":
