@@ -32,12 +32,14 @@ function SignUp() {
   const handleSignUp = async () => {
     if (!username.trim()) return triggerToast("Username is required.", "error");
     if (username.trim().length < 3) return triggerToast("Username must be at least 3 characters long.", "error");
+    if (username.trim().length > 50) return triggerToast("Username must be at most 50 characters long.", "error");
     if (!password.trim()) return triggerToast("Password is required.", "error");
     if (password.trim().length < 6)
       return triggerToast(
         "Password is too short (min. 6 characters).",
         "error"
       );
+    if (password.trim().length > 128) return triggerToast("Password is too long (max. 128 characters).", "error");
     if (!confirmPassword.trim())
       return triggerToast("Confirm Password is required.", "error");
     if (password.trim() !== confirmPassword.trim())

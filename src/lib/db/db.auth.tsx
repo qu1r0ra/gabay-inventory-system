@@ -83,6 +83,19 @@ export const AuthContextProvider = ({
   ) => {
     setRegistering(true);
 
+    // Backend validation
+    if (!username || username.length < 3 || username.length > 50) {
+      console.error("Invalid username length");
+      setRegistering(false);
+      return false;
+    }
+
+    if (!password || password.length < 6 || password.length > 128) {
+      console.error("Invalid password length");
+      setRegistering(false);
+      return false;
+    }
+
     try {
       // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
