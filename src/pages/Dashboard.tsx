@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import DashboardCard from "../components/Dashboard/DashboardCard";
 import ReportCard from "../components/Dashboard/ReportCard";
 import { inventoryApi } from "../lib/db/db.api";
+import { useAuth } from "../lib/db/db.auth";
 
 function Dashboard() {
+  const { isAdmin } = useAuth();
   const [totalItems, setTotalItems] = useState(0);
   const [lowQuantity, setLowQuantity] = useState(0);
   const [expiringSoon, setExpiringSoon] = useState(0);
@@ -71,10 +73,12 @@ function Dashboard() {
         />
       </div>
 
-      {/* Centered Report Card below */}
-      <div className="w-full max-w-[900px] flex justify-center">
-        <ReportCard itemsAdded={itemsAdded} itemsTaken={itemsTaken} />
-      </div>
+      {/* Centered Report Card below - Admin Only */}
+      {isAdmin && (
+        <div className="w-full max-w-[900px] flex justify-center">
+          <ReportCard itemsAdded={itemsAdded} itemsTaken={itemsTaken} />
+        </div>
+      )}
     </div>
   );
 }

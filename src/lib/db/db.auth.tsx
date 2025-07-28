@@ -9,7 +9,10 @@ const supabase = createClient(
 
 interface IAuth {
   user: User | null;
+  isAdmin: boolean;
   loading: boolean;
+  registering: boolean;
+  loggingIn: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   register: (
     username: string,
@@ -32,7 +35,10 @@ export const AuthContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [registering, setRegistering] = useState<boolean>(false);
+  const [loggingIn, setLoggingIn] = useState<boolean>(false);
 
   // Auto checks if user is logged in
   useEffect(() => {
@@ -48,8 +54,17 @@ export const AuthContextProvider = ({
       data: { user },
     } = await supabase.auth.getUser();
     setUser(user);
-    console.log(user);
-    console.log(`[AUTH]: updated user: ${user}`);
+
+    if (user) {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      setIsAdmin(data?.is_admin);
+    }
+
+    console.log("[AUTH]: updated user.");
     setLoading(false);
   };
 
@@ -66,31 +81,65 @@ export const AuthContextProvider = ({
     password: string,
     is_admin?: boolean
   ) => {
-    // Just generate a placeholder email because supabase wants an email
-    const email = `${username}@gabay.org`;
+    setRegistering(true);
 
-    // Supabase automatically checks password
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          role: is_admin ? "admin" : "user",
-          is_admin,
-        },
-      },
-    });
+    try {
+      // Check if username already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from("users")
+        .select("name")
+        .eq("name", username)
+        .single();
 
-    // Something went wrong
-    if (error) {
-      alert(error.message);
-      console.log(error, error.cause, error.code, error.message, error.name);
+      if (checkError) {
+        if (checkError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is expected for new usernames
+          console.error("Error checking username:", checkError.message);
+          setRegistering(false);
+          return false;
+        }
+        // PGRST116 means no user found, which is good
+      }
+
+      if (existingUser) {
+        setRegistering(false);
+        return false;
+      }
+
+      // Just generate a placeholder email because supabase wants an email
+      const email = `${username}@gabay.org`;
+
+      // Supabase automatically checks password
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: username,
+            is_admin: is_admin
+          }
+        }
+      });
+
+      // Something went wrong with auth
+      if (error) {
+        console.log(error, error.cause, error.code, error.message, error.name);
+        setRegistering(false);
+        return false;
+      }
+
+      // Let the database trigger handle the user creation
+      // No manual insert needed
+
+      // Update user
+      await updateUser();
+      setRegistering(false);
+      return true;
+    } catch (error) {
+      console.error("Registration error:", error);
+      setRegistering(false);
       return false;
     }
-
-    // Update user
-    await updateUser();
-    return true;
   };
 
   /**
@@ -101,26 +150,35 @@ export const AuthContextProvider = ({
    * @returns
    */
   const login = async (username: string, password: string) => {
-    // Just generate a placeholder email because supabase wants an email
-    const email = `${username}@gabay.org`;
+    setLoggingIn(true);
 
-    // Supabase automatically checks password
-    const { error, ...rest } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Just generate a placeholder email because supabase wants an email
+      const email = `${username}@gabay.org`;
 
-    console.log('rest', rest)
+      // Supabase automatically checks password
+      const { error, ...rest } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    // Something went wrong
-    if (error) {
-      alert(error.message);
+      console.log('rest', rest)
+
+      // Something went wrong
+      if (error) {
+        setLoggingIn(false);
+        return false;
+      }
+
+      // Update user
+      await updateUser();
+      setLoggingIn(false);
+      return true;
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoggingIn(false);
       return false;
     }
-
-    // Update user
-    await updateUser();
-    return true;
   };
 
   /**
@@ -133,7 +191,6 @@ export const AuthContextProvider = ({
 
     // Something went wrong
     if (error) {
-      alert(error.message);
       return false;
     }
 
@@ -146,8 +203,11 @@ export const AuthContextProvider = ({
     <AuthContext.Provider
       value={{
         user: useMemo<User>(() => user as User, [user]),
+        isAdmin,
         loading,
+        registering,
         register,
+        loggingIn,
         login,
         logout,
       }}
