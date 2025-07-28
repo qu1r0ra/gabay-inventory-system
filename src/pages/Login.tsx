@@ -33,13 +33,13 @@ function Login() {
   ) => {
     event.preventDefault();
 
-    if (username.trim() === "" || password.trim() === "") {
-      triggerToast(
-        "Please enter both username and password to log in.",
-        "error"
-      );
-      return;
-    }
+    // Input validation
+    if (!username.trim()) return triggerToast("Username is required.", "error");
+    if (username.trim().length < 3) return triggerToast("Username must be at least 3 characters long.", "error");
+    if (username.trim().length > 50) return triggerToast("Username must be at most 50 characters long.", "error");
+    if (!password.trim()) return triggerToast("Password is required.", "error");
+    if (password.trim().length < 6) return triggerToast("Password must be at least 6 characters long.", "error");
+    if (password.trim().length > 128) return triggerToast("Password must be at most 128 characters long.", "error");
 
     const success = await login(username, password);
     if (!success) {
