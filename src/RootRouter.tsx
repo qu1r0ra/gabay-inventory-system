@@ -8,7 +8,7 @@ function RootRouter() {
   const { loading, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (!loading && !user) return <Navigate to="/vrnqxh6p2dj722u7/login" />;
+  if (!loading && !user) return <Navigate to="/login" />;
 
   return (
     <div className="flex h-screen overflow-hidden">
