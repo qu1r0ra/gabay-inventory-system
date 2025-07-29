@@ -5,10 +5,10 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
 function RootRouter() {
-  const { user } = useAuth();
+  const { loading, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (!user) return <Navigate to="/login" />;
+  if (!loading && !user) return <Navigate to="/login" />;
 
   return (
     <div className="flex h-screen overflow-hidden">

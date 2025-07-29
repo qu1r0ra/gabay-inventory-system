@@ -65,6 +65,7 @@ export const AuthContextProvider = ({
     }
 
     console.log("[AUTH]: updated user.");
+    console.log(user);
     setLoading(false);
   };
 
@@ -174,8 +175,6 @@ export const AuthContextProvider = ({
         email,
         password,
       });
-
-      console.log('rest', rest)
 
       // Something went wrong
       if (error) {

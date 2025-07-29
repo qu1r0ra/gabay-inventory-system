@@ -11,14 +11,14 @@ interface HeaderProps {
 }
 
 function Header({ setSidebarOpen }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { loading, user, logout } = useAuth();
   const { query, setQuery } = useSearch();
 
   const handleLogout = async () => {
     await logout();
   };
 
-  if (!user) return <Navigate to="/" />;
+  if (!loading && !user) return <Navigate to="/" />;
 
   return (
     <div className="h-[60px] md:h-[90px] bg-white sticky top-0 w-full z-10 flex items-center justify-between px-3 md:px-6 border-b border-border">

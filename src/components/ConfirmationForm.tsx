@@ -21,7 +21,7 @@ function ConfirmationForm() {
   const items = Object.values(confirmedItems) as ConfirmedItem[];
 
   const [selectedLotIds, setSelectedLotIds] = useState<Set<string>>(new Set());
-  const { user } = useAuth();
+  const { loading, user } = useAuth();
 
   const [toast, setToast] = useState<{
     message: string;
