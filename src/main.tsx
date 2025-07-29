@@ -18,8 +18,17 @@ import GenerateReport from "./pages/GenerateReport";
 import { AuthContextProvider } from "./lib/db/db.auth";
 import { SearchProvider } from "./contexts/SearchContext";
 import { ItemSelectionProvider } from "./contexts/ItemSelectionContext";
+import Auth404 from './pages/Auth404';
 
 const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <Auth404 />,
+  },
+  {
+    path: "/sign-up",
+    element: <Auth404 />,
+  },
   {
     path: "/vrnqxh6p2dj722u7/login",
     element: <Login />,
