@@ -373,7 +373,7 @@ function ItemForm({ mode }: ItemFormProps) {
             />
 
             <Input
-              label="Expiration Date"
+              label="Expiration Date (Optional)"
               id="expDate"
               name="expDate"
               type="date"
@@ -501,7 +501,7 @@ function ItemForm({ mode }: ItemFormProps) {
           />
 
           <Input
-            label="Expiration Date"
+            label="Expiration Date (Optional)"
             id="expDate"
             name="expDate"
             type="date"
