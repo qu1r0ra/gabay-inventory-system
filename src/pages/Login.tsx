@@ -100,7 +100,7 @@ function Login() {
           <p className="text-sm font-Work-Sans text-center">
             Don&apos;t have an account?{" "}
             <Link
-              to="/sign-up"
+              to="/d5mf7868y97mpwa9/sign-up"
               className="text-primary hover:underline cursor-pointer"
             >
               Sign up.

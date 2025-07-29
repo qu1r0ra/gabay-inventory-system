@@ -21,11 +21,11 @@ import { ItemSelectionProvider } from "./contexts/ItemSelectionContext";
 
 const router = createBrowserRouter([
   {
-    path: "/login",
+    path: "/vrnqxh6p2dj722u7/login",
     element: <Login />,
   },
   {
-    path: "/sign-up",
+    path: "/d5mf7868y97mpwa9/sign-up",
     element: <SignUp />,
   },
   {

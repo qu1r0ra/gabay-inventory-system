@@ -49,7 +49,7 @@ function SignUp() {
       const success = await register(username, password, false);
       if (success) {
         triggerToast("Successfully registered account!", "success");
-        setTimeout(() => navigate("/login"), 1500); // delay navigation to let toast show
+        setTimeout(() => navigate("/vrnqxh6p2dj722u7/login"), 1500); // delay navigation to let toast show
       } else {
         triggerToast("Username already exists. Please choose a different username.", "error");
       }
@@ -116,7 +116,7 @@ function SignUp() {
           <p className="text-sm font-Work-Sans text-center">
             Already have an account?{" "}
             <Link
-              to="/login"
+              to="/vrnqxh6p2dj722u7/login"
               className="text-primary hover:underline cursor-pointer"
             >
               Log in.
