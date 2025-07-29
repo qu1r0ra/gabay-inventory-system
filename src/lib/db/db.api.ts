@@ -1,10 +1,4 @@
-import {
-  supabase,
-  type Item,
-  type ItemStock,
-  type Transaction,
-  type User,
-} from "./index";
+import { supabase } from "./index";
 import { logger } from "../utils/console.js";
 import { Document } from "../pdf";
 import { tableToHtml } from "../table";
@@ -1178,7 +1172,6 @@ export const inventoryApi = {
           alignment: "right",
         })
         .text(`Generated on ${new Date().toLocaleDateString("en-US")}.`)
-        .text("Add more text if necessary")
         .text("View the table in the next page.")
         .endPage();
 
