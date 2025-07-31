@@ -58,6 +58,7 @@ function NotificationDetails() {
               expiry_date: stock.expiry_date,
               item: stock.item,
               deleted: stock.deleted,
+              invalid: stock.invalid,
             }}
           />
         ))}

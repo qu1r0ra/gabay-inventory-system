@@ -1269,7 +1269,14 @@ export const inventoryApi = {
         if (lotMap[lotId]) {
           return lotMap[lotId];
         } else {
-          return { lot_id: lotId, invalid: true };
+          return {
+            lot_id: lotId,
+            invalid: true,
+            item: null,
+            item_qty: null,
+            expiry_date: null,
+            deleted: false,
+          };
         }
       });
       return { ...notif, stocks };
