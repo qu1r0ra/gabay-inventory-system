@@ -22,12 +22,15 @@ function ActivityLog() {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("date_desc");
   const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    setLoading(true);
     inventoryApi
       .getActivityLogEntries()
       .then(setRawData)
-      .catch((err) => console.error("Failed to fetch activity log:", err));
+      .catch((err) => console.error("Failed to fetch activity log:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -129,15 +132,27 @@ function ActivityLog() {
 
         {/* Desktop Table View */}
         <div className="hidden md:block">
-          <ActivityLogTable columns={columns} data={paddedData} />
+          {loading ? (
+            <div className="flex items-center justify-center h-[450px]">
+              <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+            </div>
+          ) : (
+            <ActivityLogTable columns={columns} data={paddedData} />
+          )}
         </div>
       </div>
 
       {/* Mobile Card View */}
       <div className="md:hidden w-full max-w-[1000px] mx-auto flex flex-col gap-4 px-4">
-        {visibleRows.map((entry, idx) => (
-          <ActivityLogCard key={idx} entry={entry} />
-        ))}
+        {loading ? (
+          <div className="flex items-center justify-center h-[450px]">
+            <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+          </div>
+        ) : (
+          visibleRows.map((entry, idx) => (
+            <ActivityLogCard key={idx} entry={entry} />
+          ))
+        )}
       </div>
 
       {/* Pagination */}
