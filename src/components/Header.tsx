@@ -3,7 +3,6 @@ import Button from "./General/Button";
 import menu from "../assets/hamburger.png";
 import { Heading } from "./General/Heading";
 import { useAuth } from "../lib/db/db.auth";
-import { Navigate } from "react-router-dom";
 import { useSearch } from "../contexts/SearchContext";
 
 interface HeaderProps {
@@ -11,14 +10,12 @@ interface HeaderProps {
 }
 
 function Header({ setSidebarOpen }: HeaderProps) {
-  const { loading, user, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { query, setQuery } = useSearch();
-
+  
   const handleLogout = async () => {
     await logout();
   };
-
-  if (!loading && !user) return <Navigate to="/" />;
 
   return (
     <div className="h-[60px] md:h-[90px] bg-white sticky top-0 w-full z-10 flex items-center justify-between px-3 md:px-6 border-b border-border">

@@ -1,6 +1,7 @@
 import { createClient, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
+
 // Env setup
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL!,
@@ -13,6 +14,7 @@ interface IAuth {
   loading: boolean;
   registering: boolean;
   loggingIn: boolean;
+  loggingOut: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   register: (
     username: string,
@@ -39,6 +41,7 @@ export const AuthContextProvider = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [registering, setRegistering] = useState<boolean>(false);
   const [loggingIn, setLoggingIn] = useState<boolean>(false);
+  const [loggingOut, setLoggingOut] = useState<boolean>(false);
 
   // Auto checks if user is logged in
   useEffect(() => {
@@ -199,10 +202,12 @@ export const AuthContextProvider = ({
    * @returns
    */
   const logout = async () => {
+    setLoggingOut(true);
     const { error } = await supabase.auth.signOut();
 
     // Something went wrong
     if (error) {
+      setLoggingOut(false);
       return false;
     }
 
@@ -220,6 +225,7 @@ export const AuthContextProvider = ({
         registering,
         register,
         loggingIn,
+        loggingOut,
         login,
         logout,
       }}
