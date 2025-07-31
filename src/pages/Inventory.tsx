@@ -31,9 +31,11 @@ function Inventory() {
   );
   const [sort, setSort] = useState("mod_desc");
   const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchItems = async () => {
+      setLoading(true);
       try {
         let result;
 
@@ -101,6 +103,8 @@ function Inventory() {
         setRawData(result);
       } catch (error) {
         console.error("Error loading items:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -231,15 +235,27 @@ function Inventory() {
 
         {/* Desktop Table View */}
         <div className="hidden md:block">
-          <InventoryTable columns={columns} data={paddedData} />
+          {loading ? (
+            <div className="flex items-center justify-center h-[450px]">
+              <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+            </div>
+          ) : (
+            <InventoryTable columns={columns} data={paddedData} />
+          )}
         </div>
       </div>
 
       {/* Mobile Card View (outside container) */}
       <div className="md:hidden w-full max-w-[1000px] mx-auto flex items-center flex-col gap-4 px-4">
-        {visibleRows.map((item, idx) => (
-          <InventoryCard key={idx} item={item} />
-        ))}
+        {loading ? (
+          <div className="flex items-center justify-center h-[450px]">
+            <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+          </div>
+        ) : (
+          visibleRows.map((item, idx) => (
+            <InventoryCard key={idx} item={item} />
+          ))
+        )}
       </div>
 
       {/* Pagination (visible on all screen sizes) */}
