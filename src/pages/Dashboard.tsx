@@ -12,6 +12,7 @@ function Dashboard() {
   const [expired, setExpired] = useState(0);
   const [itemsAdded, setItemsAdded] = useState(0);
   const [itemsTaken, setItemsTaken] = useState(0);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -37,11 +38,21 @@ function Dashboard() {
         setItemsTaken(itemsTaken);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadDashboardData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col items-center py-6 sm:py-10 gap-8 sm:gap-12 bg-gray-100 px-4">
